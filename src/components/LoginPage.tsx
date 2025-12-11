@@ -1,58 +1,59 @@
 import { useState, useEffect } from 'react';
+
+// --- IMPORTACIONES ---
 import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
-// Importamos el servicio que creamos antes (ajusta la ruta si está en otra carpeta)
 import authService from '../services/authService'; 
 
 export function LoginPage({ onLogin }: any) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState(''); // Para mostrar errores en rojo
-  const [loading, setLoading] = useState(false); // Para deshabilitar el botón mientras carga
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  // --- 1. PRUEBA DE CONEXIÓN AL CARGAR (EL PING) ---
+  // --- PRUEBA DE CONEXIÓN (PING) ---
   useEffect(() => {
-    // Esto es solo para verificar que Java responde. Puedes borrarlo luego.
     console.log("Haciendo Ping al backend...");
     fetch('http://localhost:8080/api/test')
       .then(res => {
         if (res.ok) return res.json();
         throw new Error("Backend no responde");
       })
-      .then(data => {
-        console.log("¡CONEXIÓN EXITOSA!", data);
-        // Si quieres, descomenta la siguiente línea para ver una alerta visual
-        // alert("Backend conectado: " + data.mensaje);
-      })
-      .catch(err => console.log("El Backend no responde aún (revisa que esté corriendo)", err));
+      .then(data => console.log("¡CONEXIÓN EXITOSA!", data))
+      .catch(err => console.log("Backend desconectado o cargando...", err));
   }, []);
-  // --------------------------------------------------
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    setLoading(true); // Bloqueamos el botón
+    setLoading(true);
 
     try {
-      console.log("Enviando datos al Login...");
+      console.log("Enviando credenciales...");
       
-      // 2. LLAMADA REAL AL BACKEND
-      // authService se encarga de cambiar 'email' por 'login' internamente
-      const response = await authService.login(email, password);
+      // 1. LLAMADA AL LOGIN
+      await authService.login(email, password);
       
-      console.log("Login correcto:", response);
+      console.log("Login correcto. Redirigiendo al Dashboard...");
 
-      // Aquí definimos el rol según la respuesta o temporalmente 'admin'
-      // Ajusta esto según cómo quieras manejar los roles que vienen de Java
-      onLogin('admin'); 
+      // 2. REDIRECCIÓN CORREGIDA
+      // Te enviamos al DASHBOARD, que es la zona protegida
+      window.location.href = '/dashboard'; 
 
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error al iniciar sesión:", err);
-      setError('Credenciales incorrectas o error de conexión');
+      
+      if (err.response?.status === 400 || err.response?.status === 401) {
+        setError('Correo o contraseña incorrectos.');
+      } else if (err.response?.status === 403) {
+        setError('Acceso denegado.');
+      } else {
+        setError('Error de conexión. Revisa que el Backend esté corriendo.');
+      }
     } finally {
-      setLoading(false); // Desbloqueamos el botón
+      setLoading(false);
     }
   };
 
@@ -61,7 +62,6 @@ export function LoginPage({ onLogin }: any) {
       <Card className="w-full max-w-md p-8">
         <h2 className="text-2xl font-bold text-center mb-6">Iniciar Sesión</h2>
         
-        {/* Mensaje de error visible */}
         {error && (
             <div className="mb-4 p-3 bg-red-100 text-red-700 rounded border border-red-400 text-sm">
                 {error}
@@ -74,7 +74,7 @@ export function LoginPage({ onLogin }: any) {
             <Input 
               id="email" 
               type="email" 
-              placeholder="admin@ejemplo.com"
+              placeholder="prueba@test.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
@@ -92,7 +92,7 @@ export function LoginPage({ onLogin }: any) {
           </div>
           
           <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? 'Conectando...' : 'Ingresar'}
+            {loading ? 'Ingresando...' : 'Ingresar'}
           </Button>
         </form>
       </Card>
