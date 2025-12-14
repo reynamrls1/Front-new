@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from './ui/button';
 import { ScrollArea } from './ui/scroll-area';
-import { 
+import authService from '../services/authService';
+import {
   Home,
   FolderTree,
   CircleDot,
@@ -66,7 +67,7 @@ interface DashboardProps {
   onChangeRole: (role: UserRole) => void;
 }
 
-type PageKey = 
+type PageKey =
   | 'dashboard'
   | 'document-type'
   | 'usuarios'
@@ -89,6 +90,29 @@ type PageKey =
 export function Dashboard({ onNavigateHome, userRole, onChangeRole }: DashboardProps) {
   const [currentPage, setCurrentPage] = useState<PageKey>('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(true);
+
+  // Estados del usuario
+  const [personName, setPersonName] = useState('');
+  const [personEmail, setPersonEmail] = useState('');
+  const [personPhone, setPersonPhone] = useState('');
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const currentUser = authService.getCurrentUser();
+        if (currentUser.personId) {
+          const personData = await authService.getPerson(parseInt(currentUser.personId));
+          setPersonName(`${personData.firstName} ${personData.firstLastName}`);
+          setPersonPhone(personData.phoneNumber);
+          const storedEmail = localStorage.getItem('user_email');
+          if (storedEmail) setPersonEmail(storedEmail);
+        }
+      } catch (error) {
+        console.error("Error cargando perfil", error);
+      }
+    };
+    fetchUserData();
+  }, []);
 
   // Definir menús para cada rol
   const adminMenuItems = [
@@ -123,11 +147,11 @@ export function Dashboard({ onNavigateHome, userRole, onChangeRole }: DashboardP
   const employeeMenuItems = adminMenuItems; // Empleado tiene los mismos módulos que admin
 
   // Seleccionar menú según rol
-  const menuItems = userRole === 'admin' 
-    ? adminMenuItems 
-    : userRole === 'client' 
-    ? clientMenuItems 
-    : employeeMenuItems;
+  const menuItems = userRole === 'admin'
+    ? adminMenuItems
+    : userRole === 'client'
+      ? clientMenuItems
+      : employeeMenuItems;
 
   const renderPage = () => {
     switch (currentPage) {
@@ -207,12 +231,11 @@ export function Dashboard({ onNavigateHome, userRole, onChangeRole }: DashboardP
     <div className="flex h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
       {/* Sidebar */}
       <aside
-        className={`${
-          sidebarOpen ? 'w-72' : 'w-0'
-        } transition-all duration-300 bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900 text-white flex flex-col overflow-hidden shadow-2xl relative`}
+        className={`${sidebarOpen ? 'w-72' : 'w-0'
+          } transition-all duration-300 bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900 text-white flex flex-col overflow-hidden shadow-2xl relative`}
       >
         <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTSAxMCAwIEwgMCAwIDAgMTAiIGZpbGw9Im5vbmUiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS13aWR0aD0iMC41IiBvcGFjaXR5PSIwLjA1Ii8+PC9wYXR0ZXJuPjwvZGVmcz48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSJ1cmwoI2dyaWQpIi8+PC9zdmc+')] opacity-40"></div>
-        
+
         <div className="relative p-6 border-b border-white/10">
           <div className="flex items-center gap-3">
             <div className="bg-gradient-to-br from-blue-500 to-cyan-500 p-2.5 rounded-2xl shadow-xl shadow-blue-500/30">
@@ -234,15 +257,13 @@ export function Dashboard({ onNavigateHome, userRole, onChangeRole }: DashboardP
               <button
                 key={item.key}
                 onClick={() => setCurrentPage(item.key)}
-                className={`group relative w-full flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all duration-300 ${
-                  currentPage === item.key
-                    ? 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-xl shadow-blue-500/30'
-                    : 'text-blue-100/80 hover:bg-white/10 hover:text-white backdrop-blur-sm'
-                }`}
+                className={`group relative w-full flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all duration-300 ${currentPage === item.key
+                  ? 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-xl shadow-blue-500/30'
+                  : 'text-blue-100/80 hover:bg-white/10 hover:text-white backdrop-blur-sm'
+                  }`}
               >
-                <item.icon className={`w-5 h-5 flex-shrink-0 transition-transform duration-300 ${
-                  currentPage === item.key ? 'scale-110' : 'group-hover:scale-110'
-                }`} />
+                <item.icon className={`w-5 h-5 flex-shrink-0 transition-transform duration-300 ${currentPage === item.key ? 'scale-110' : 'group-hover:scale-110'
+                  }`} />
                 <span className="text-sm">{item.label}</span>
                 {currentPage === item.key && (
                   <div className="absolute right-3 w-1.5 h-1.5 bg-white rounded-full animate-pulse"></div>
@@ -298,11 +319,8 @@ export function Dashboard({ onNavigateHome, userRole, onChangeRole }: DashboardP
                 <DropdownMenuTrigger asChild>
                   <button className="flex items-center gap-3 hover:bg-blue-50 p-2 rounded-xl transition-all group">
                     <div className="text-right hidden sm:block">
-                      <p className="text-sm text-gray-900">{getRoleName()}</p>
-                      <p className="text-xs text-gray-500 flex items-center justify-end gap-1.5">
-                        <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span>
-                        En línea
-                      </p>
+                      <p className="text-sm text-gray-900 font-semibold">{personName || 'Usuario'}</p>
+                      <p className="text-xs text-gray-500">{getRoleName()}</p>
                     </div>
                     <div className="flex items-center gap-2">
                       <div className="w-11 h-11 bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-blue-500/30 group-hover:scale-105 transition-transform">
@@ -312,50 +330,29 @@ export function Dashboard({ onNavigateHome, userRole, onChangeRole }: DashboardP
                     </div>
                   </button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  <DropdownMenuLabel>Cambiar Rol</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem 
-                    onClick={() => handleRoleChange('admin')}
-                    className={`cursor-pointer ${userRole === 'admin' ? 'bg-blue-50 text-blue-700' : ''}`}
-                  >
-                    <UserCog className="w-4 h-4 mr-2" />
-                    <span>Administrador</span>
-                    {userRole === 'admin' && (
-                      <span className="ml-auto w-2 h-2 bg-blue-600 rounded-full"></span>
-                    )}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem 
-                    onClick={() => handleRoleChange('client')}
-                    className={`cursor-pointer ${userRole === 'client' ? 'bg-blue-50 text-blue-700' : ''}`}
-                  >
-                    <User className="w-4 h-4 mr-2" />
-                    <span>Cliente</span>
-                    {userRole === 'client' && (
-                      <span className="ml-auto w-2 h-2 bg-blue-600 rounded-full"></span>
-                    )}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem 
-                    onClick={() => handleRoleChange('employee')}
-                    className={`cursor-pointer ${userRole === 'employee' ? 'bg-blue-50 text-blue-700' : ''}`}
-                  >
-                    <Briefcase className="w-4 h-4 mr-2" />
-                    <span>Empleado</span>
-                    {userRole === 'employee' && (
-                      <span className="ml-auto w-2 h-2 bg-blue-600 rounded-full"></span>
-                    )}
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem 
+                <DropdownMenuContent align="end" className="w-64 p-2">
+                  <div className="px-2 py-1.5">
+                    <p className="text-sm font-semibold text-gray-900">{personName || 'Cargando...'}</p>
+                    <p className="text-xs text-gray-500 mt-0.5">{personEmail}</p>
+                    <div className="mt-2 flex items-center gap-1.5 text-xs font-medium text-blue-600 bg-blue-50 px-2 py-1 rounded-md w-fit">
+                      <span className="w-1.5 h-1.5 bg-blue-600 rounded-full"></span>
+                      {getRoleName()}
+                    </div>
+                  </div>
+                  <DropdownMenuSeparator className="my-2" />
+
+                  {/* Información extra si se desea */}
+                  {personPhone && (
+                    <DropdownMenuItem className="text-xs text-gray-500 cursor-default">
+                      📞 {personPhone}
+                    </DropdownMenuItem>
+                  )}
+
+                  <DropdownMenuSeparator className="my-2" />
+
+                  <DropdownMenuItem
                     onClick={onNavigateHome}
-                    className="cursor-pointer text-gray-600"
-                  >
-                    <Home className="w-4 h-4 mr-2" />
-                    <span>Volver al Inicio</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem 
-                    onClick={onNavigateHome}
-                    className="cursor-pointer text-gray-600"
+                    className="cursor-pointer text-red-600 focus:text-red-600 focus:bg-red-50 rounded-lg"
                   >
                     <LogOut className="w-4 h-4 mr-2" />
                     <span>Cerrar Sesión</span>
