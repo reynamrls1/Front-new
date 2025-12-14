@@ -47,7 +47,7 @@ import { IngresosInsumosPage } from './pages/IngresoInsumosPage';
 import { IngresosPage } from './pages/IngresosPage';
 import { ProductosPage } from './pages/ProductosPage';
 import { InsumosProductosPage } from './pages/InsumosProductosPage';
-import { MedidasPage } from './pages/MedidasPage';
+
 import { MesasPage } from './pages/MesasPage';
 import { OrdenPage } from './pages/OrdenPage';
 import { OrdenProductoPage } from './pages/OrdenProductoPage';
@@ -57,7 +57,7 @@ import { DashboardHome } from './pages/DashboardHome';
 import { DocumentTypePage } from './pages/DocumentTypePage';
 import { UsuarioPage } from './pages/UsuarioPage';
 import { CondicionPage } from './pages/CondicionPage';
-import InsumosPage from './pages/InsumoPage';
+import { InsumoPage as InsumosPage } from './pages/InsumoPage';
 
 type UserRole = 'admin' | 'client' | 'employee';
 
@@ -80,7 +80,7 @@ type PageKey =
   | 'insumos'
   | 'productos'
   | 'insumos-productos'
-  | 'medidas'
+
   | 'mesas'
   | 'orden'
   | 'orden-producto'
@@ -122,7 +122,7 @@ export function Dashboard({ onNavigateHome, userRole, onChangeRole }: DashboardP
     { key: 'ingresos' as PageKey, label: 'Ingresos', icon: DollarSign },
     { key: 'ingresos-insumos' as PageKey, label: 'Ingreso/Insumo', icon: TrendingUp },
     { key: 'insumos' as PageKey, label: 'Insumos', icon: Package },
-    { key: 'medidas' as PageKey, label: 'Unidades de Medidas', icon: Ruler },
+
     { key: 'categorias' as PageKey, label: 'Categorías', icon: FolderTree },
     { key: 'insumos-productos' as PageKey, label: 'Productos/Insumos', icon: Link2 },
     { key: 'productos' as PageKey, label: 'Productos', icon: Box },
@@ -179,8 +179,7 @@ export function Dashboard({ onNavigateHome, userRole, onChangeRole }: DashboardP
         return <ProductosPage />;
       case 'insumos-productos':
         return <InsumosProductosPage />;
-      case 'medidas':
-        return <MedidasPage />;
+
       case 'mesas':
         return <MesasPage />;
       case 'orden':
