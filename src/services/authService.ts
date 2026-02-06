@@ -12,6 +12,7 @@ const authService = {
             localStorage.setItem('person_id', response.data.personId);
             localStorage.setItem('user_role', response.data.role);
             localStorage.setItem('user_email', email); // Save email for display
+            localStorage.setItem('user_restaurants', JSON.stringify(response.data.restaurantes || []));
         }
         return response.data;
     },
@@ -61,7 +62,12 @@ const authService = {
                 documentTypeId: parseInt(userData.documentTypeId),
                 documentNumber: parseInt(userData.documentNumber),
                 bornDate: userData.bornDate // "YYYY-MM-DD"
-            }
+            },
+            // Campos opcionales para gestión de restaurantes
+            tipoAsociacion: userData.tipoAsociacion || "NINGUNA", // "CREAR_RESTAURANTE", "ASOCIAR_RESTAURANTE", "NINGUNA"
+            nuevoRestaurante: userData.nuevoRestaurante || null,
+            restauranteIdAsociar: userData.restauranteIdAsociar || null,
+            solicitarComoAdmin: userData.solicitarComoAdmin || false
         };
 
         console.log("Enviando registro estructurado al backend:", datosParaJava);
