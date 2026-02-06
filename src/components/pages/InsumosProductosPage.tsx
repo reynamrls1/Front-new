@@ -1,148 +1,154 @@
-import { useState } from 'react';
-import { Card } from '../ui/card';
-import { Button } from '../ui/button';
-import { Input } from '../ui/input';
-import { Label } from '../ui/label';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
-import { Plus, Eye, Edit, Trash2 } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import insumosProductoService, { InsumosProductoDTO, InsumosProductoCreateDTO } from '../../services/insumosProductoService';
+import productoService, { ProductDTO } from '../../services/productoService';
+import insumoService, { InsumoDTO } from '../../services/insumoService';
+import { medidasService, MedidaDTO } from '../../services/medidasService';
+import { Button } from "../ui/button";
+import { Input } from "../ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../ui/table";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
+import { Plus, Pencil, Trash2 } from "lucide-react";
+import { toast } from 'sonner';
 
-interface InsumoProducto {
-  id: number;
-  producto: string;
-  insumo: string;
-  cantidad: number;
-  unidad: string;
-}
-
-export function InsumosProductosPage() {
-  const [relaciones, setRelaciones] = useState<InsumoProducto[]>([
-    { id: 1, producto: 'Pizza Margherita', insumo: 'Harina', cantidad: 0.3, unidad: 'kg' },
-    { id: 2, producto: 'Pizza Margherita', insumo: 'Queso', cantidad: 0.2, unidad: 'kg' },
-    { id: 3, producto: 'Café Americano', insumo: 'Café', cantidad: 0.02, unidad: 'kg' },
-    { id: 4, producto: 'Ensalada César', insumo: 'Lechuga', cantidad: 0.15, unidad: 'kg' },
-  ]);
+export const InsumosProductosPage: React.FC = () => {
+  const [recipes, setRecipes] = useState<InsumosProductoDTO[]>([]);
+  const [products, setProducts] = useState<ProductDTO[]>([]);
+  const [insumos, setInsumos] = useState<InsumoDTO[]>([]);
+  const [measures, setMeasures] = useState<MedidaDTO[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [isViewMode, setIsViewMode] = useState(false);
-  const [currentRelacion, setCurrentRelacion] = useState<InsumoProducto | null>(null);
-  const [formData, setFormData] = useState({
-    producto: '',
-    insumo: '',
-    cantidad: 0,
-    unidad: '',
-  });
+  const [editingId, setEditingId] = useState<number | null>(null);
 
-  const handleView = (relacion: InsumoProducto) => {
-    setCurrentRelacion(relacion);
-    setIsViewMode(true);
-    setIsDialogOpen(true);
-  };
+  // Form State
+  const [selectedProductId, setSelectedProductId] = useState<string>('');
+  const [selectedInsumoId, setSelectedInsumoId] = useState<string>('');
+  const [selectedMeasure, setSelectedMeasure] = useState<string>('');
+  const [amount, setAmount] = useState<string>('');
 
-  const handleEdit = (relacion: InsumoProducto) => {
-    setCurrentRelacion(relacion);
-    setFormData({
-      producto: relacion.producto,
-      insumo: relacion.insumo,
-      cantidad: relacion.cantidad,
-      unidad: relacion.unidad,
-    });
-    setIsViewMode(false);
-    setIsDialogOpen(true);
-  };
+  useEffect(() => {
+    loadData();
+  }, []);
 
-  const handleDelete = (id: number) => {
-    if (confirm('¿Está seguro de eliminar esta relación?')) {
-      setRelaciones(relaciones.filter(r => r.id !== id));
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      const [recipesData, productsData, insumosData, measuresData] = await Promise.all([
+        insumosProductoService.getAll(),
+        productoService.getAll(),
+        insumoService.getAll(),
+        medidasService.getAll()
+      ]);
+      setRecipes(recipesData);
+      setProducts(productsData);
+      setInsumos(insumosData);
+      setMeasures(measuresData);
+    } catch (error) {
+      console.error("Error loading data", error);
+      toast.error("Error al cargar datos");
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleAdd = () => {
-    setCurrentRelacion(null);
-    setFormData({
-      producto: '',
-      insumo: '',
-      cantidad: 0,
-      unidad: 'kg',
-    });
-    setIsViewMode(false);
-    setIsDialogOpen(true);
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (currentRelacion) {
-      setRelaciones(relaciones.map(r =>
-        r.id === currentRelacion.id ? { ...r, ...formData } : r
-      ));
+  const handleOpenDialog = (recipe?: InsumosProductoDTO) => {
+    if (recipe) {
+      setEditingId(recipe.id!);
+      setSelectedProductId(recipe.productId?.toString() || '');
+      setSelectedInsumoId(recipe.inputId?.toString() || '');
+      setSelectedMeasure(recipe.measure || '');
+      setAmount(recipe.amount.toString());
     } else {
-      setRelaciones([...relaciones, {
-        id: Math.max(...relaciones.map(r => r.id), 0) + 1,
-        ...formData,
-      }]);
+      setEditingId(null);
+      setSelectedProductId('');
+      setSelectedInsumoId('');
+      setSelectedMeasure('');
+      setAmount('');
     }
-    setIsDialogOpen(false);
+    setIsDialogOpen(true);
   };
+
+  const handleSubmit = async () => {
+    if (!selectedProductId || !selectedInsumoId || !selectedMeasure || !amount) {
+      toast.error("Por favor completa todos los campos");
+      return;
+    }
+
+    const payload: InsumosProductoCreateDTO = {
+      productId: parseInt(selectedProductId),
+      inputId: parseInt(selectedInsumoId),
+      measure: selectedMeasure,
+      amount: parseFloat(amount)
+    };
+
+    try {
+      if (editingId) {
+        await insumosProductoService.update(editingId, payload);
+        toast.success("Receta actualizada");
+      } else {
+        await insumosProductoService.create(payload);
+        toast.success("Receta creada");
+      }
+      setIsDialogOpen(false);
+      loadData();
+    } catch (error) {
+      console.error(error);
+      toast.error("Error al guardar");
+    }
+  };
+
+  const handleDelete = async (id: number) => {
+    if (confirm("¿Estás seguro de eliminar esta relación?")) {
+      try {
+        await insumosProductoService.delete(id);
+        toast.success("Eliminado correctamente");
+        loadData();
+      } catch (error) {
+        toast.error("Error al eliminar");
+      }
+    }
+  };
+
+  if (loading) return <div className="p-8">Cargando...</div>;
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-gray-900">Insumos - Productos</h2>
-          <p className="text-gray-600">Relación de insumos requeridos por producto</p>
+          <h1 className="text-3xl font-bold tracking-tight text-gray-900">Productos - Insumos (Recetas)</h1>
+          <p className="text-gray-500">Define qué insumos necesitan tus productos.</p>
         </div>
-        <Button onClick={handleAdd} className="relative group/rel">
-          <span className="absolute inset-0 rounded-xl bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 opacity-0 group-hover/rel:opacity-100 transition-opacity duration-500 blur-lg"></span>
-          <span className="relative z-10 flex items-center gap-2">
-            <Plus className="w-4 h-4 group-hover/rel:rotate-90 transition-transform duration-300" />
-            Nueva Relación
-          </span>
+        <Button onClick={() => handleOpenDialog()}>
+          <Plus className="mr-2 h-4 w-4" /> Nueva Receta
         </Button>
       </div>
 
-      <Card className="overflow-hidden">
+      <div className="bg-white rounded-md border">
         <Table>
           <TableHeader>
-            <TableRow className="bg-gradient-to-r from-blue-50 to-cyan-50">
+            <TableRow>
               <TableHead>Producto</TableHead>
-              <TableHead>Insumo</TableHead>
+              <TableHead>Insumo Requerido</TableHead>
               <TableHead>Cantidad</TableHead>
-              <TableHead>Unidad</TableHead>
+              <TableHead>Medida</TableHead>
               <TableHead className="text-right">Acciones</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {relaciones.map((rel) => (
-              <TableRow key={rel.id} className="hover:bg-blue-50/50 transition-colors">
-                <TableCell className="text-gray-900">{rel.producto}</TableCell>
-                <TableCell>{rel.insumo}</TableCell>
-                <TableCell>{rel.cantidad}</TableCell>
-                <TableCell>{rel.unidad}</TableCell>
+            {recipes.map((recipe) => (
+              <TableRow key={recipe.id}>
+                <TableCell className="font-medium">{recipe.productName || '-'}</TableCell>
+                <TableCell>{recipe.inputNombre || '-'}</TableCell>
+                <TableCell>{recipe.amount}</TableCell>
+                <TableCell>{recipe.measure}</TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-2">
-                    <Button 
-                      variant="ghost" 
-                      size="icon"
-                      onClick={() => handleView(rel)}
-                      className="hover:bg-blue-50 hover:text-blue-600"
-                    >
-                      <Eye className="w-4 h-4" />
+                    <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(recipe)}>
+                      <Pencil className="h-4 w-4" />
                     </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="icon"
-                      onClick={() => handleEdit(rel)}
-                      className="hover:bg-amber-50 hover:text-amber-600"
-                    >
-                      <Edit className="w-4 h-4" />
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="icon"
-                      onClick={() => handleDelete(rel.id)}
-                      className="hover:bg-red-50 hover:text-red-600"
-                    >
-                      <Trash2 className="w-4 h-4" />
+                    <Button variant="ghost" size="icon" onClick={() => handleDelete(recipe.id!)}>
+                      <Trash2 className="h-4 w-4 text-red-500" />
                     </Button>
                   </div>
                 </TableCell>
@@ -150,92 +156,76 @@ export function InsumosProductosPage() {
             ))}
           </TableBody>
         </Table>
-      </Card>
+      </div>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle>
-              {isViewMode ? 'Ver' : currentRelacion ? 'Editar' : 'Nueva'} Relación Insumo-Producto
-            </DialogTitle>
+            <DialogTitle>{editingId ? 'Editar Receta' : 'Nueva Receta'}</DialogTitle>
           </DialogHeader>
-          {isViewMode && currentRelacion ? (
-            <div className="space-y-4">
-              <div>
-                <Label>ID</Label>
-                <p className="text-slate-900 mt-1">{currentRelacion.id}</p>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Producto</label>
+              <Select value={selectedProductId} onValueChange={setSelectedProductId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecciona producto" />
+                </SelectTrigger>
+                <SelectContent>
+                  {products.map(p => (
+                    <SelectItem key={p.id} value={p.id?.toString() || ''}>{p.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Insumo</label>
+              <Select value={selectedInsumoId} onValueChange={setSelectedInsumoId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecciona insumo" />
+                </SelectTrigger>
+                <SelectContent>
+                  {insumos.map(i => (
+                    <SelectItem key={i.id} value={i.id!.toString()}>{i.nombre}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Cantidad</label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  placeholder="Ej: 0.5"
+                />
               </div>
-              <div>
-                <Label>Producto</Label>
-                <p className="text-slate-900 mt-1">{currentRelacion.producto}</p>
-              </div>
-              <div>
-                <Label>Insumo</Label>
-                <p className="text-slate-900 mt-1">{currentRelacion.insumo}</p>
-              </div>
-              <div>
-                <Label>Cantidad</Label>
-                <p className="text-slate-900 mt-1">{currentRelacion.cantidad} {currentRelacion.unidad}</p>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Medida</label>
+                <Select value={selectedMeasure} onValueChange={setSelectedMeasure}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Unidad" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {measures.map(m => (
+                      <SelectItem key={m.id} value={m.id}>{m.nombre}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
-          ) : (
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <Label htmlFor="producto">Producto *</Label>
-                <Input 
-                  id="producto" 
-                  placeholder="Nombre del producto"
-                  value={formData.producto}
-                  onChange={(e) => setFormData({ ...formData, producto: e.target.value })}
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="insumo">Insumo *</Label>
-                <Input 
-                  id="insumo" 
-                  placeholder="Nombre del insumo"
-                  value={formData.insumo}
-                  onChange={(e) => setFormData({ ...formData, insumo: e.target.value })}
-                  required
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="cantidad">Cantidad *</Label>
-                  <Input 
-                    id="cantidad" 
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={formData.cantidad}
-                    onChange={(e) => setFormData({ ...formData, cantidad: parseFloat(e.target.value) || 0 })}
-                    required
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="unidad">Unidad *</Label>
-                  <Input 
-                    id="unidad" 
-                    placeholder="kg, L, ud"
-                    value={formData.unidad}
-                    onChange={(e) => setFormData({ ...formData, unidad: e.target.value })}
-                    required
-                  />
-                </div>
-              </div>
-              <div className="flex gap-2 pt-4">
-                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)} className="flex-1">
-                  Cancelar
-                </Button>
-                <Button type="submit" className="flex-1">
-                  {currentRelacion ? 'Actualizar' : 'Guardar'}
-                </Button>
-              </div>
-            </form>
-          )}
+
+            <Button className="w-full mt-4" onClick={handleSubmit}>
+              Guardar
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
   );
-}
+};
+
+
