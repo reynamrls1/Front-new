@@ -250,7 +250,7 @@ export function Dashboard({ onNavigateHome, userRole, onChangeRole }: DashboardP
           </div>
         </div>
 
-        <ScrollArea className="flex-1 relative">
+        <ScrollArea className="flex-1 relative min-h-0 [&_[data-slot=scroll-area-thumb]]:bg-white/20 hover:[&_[data-slot=scroll-area-thumb]]:bg-white/40">
           <nav className="p-4 space-y-2">
             {menuItems.map((item) => (
               <button
