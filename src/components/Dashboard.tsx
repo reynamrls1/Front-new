@@ -58,6 +58,8 @@ import { DocumentTypePage } from './pages/DocumentTypePage';
 import { UsuarioPage } from './pages/UsuarioPage';
 import { CondicionPage } from './pages/CondicionPage';
 import { InsumoPage as InsumosPage } from './pages/InsumoPage';
+import { SolicitudesPage } from './pages/SolicitudesPage';
+import { EmpleadosPage } from './pages/EmpleadosPage';
 
 type UserRole = 'admin' | 'client' | 'employee';
 
@@ -71,6 +73,8 @@ type PageKey =
   | 'dashboard'
   | 'document-type'
   | 'usuarios'
+  | 'empleados'
+  | 'solicitudes'
   | 'categorias'
   | 'condicion'
   | 'estados'
@@ -117,8 +121,9 @@ export function Dashboard({ onNavigateHome, userRole, onChangeRole }: DashboardP
   // Definir menús para cada rol
   const adminMenuItems = [
     { key: 'dashboard' as PageKey, label: 'Inicio', icon: Home },
+    { key: 'solicitudes' as PageKey, label: 'Solicitudes', icon: CircleDot },
+    { key: 'empleados' as PageKey, label: 'Empleados', icon: Users },
     { key: 'document-type' as PageKey, label: 'Tipo de Documento', icon: FileType },
-    { key: 'usuarios' as PageKey, label: 'Usuarios', icon: Users },
     { key: 'ingresos' as PageKey, label: 'Ingresos', icon: DollarSign },
     { key: 'ingresos-insumos' as PageKey, label: 'Ingreso/Insumo', icon: TrendingUp },
     { key: 'insumos' as PageKey, label: 'Insumos', icon: Package },
@@ -144,7 +149,23 @@ export function Dashboard({ onNavigateHome, userRole, onChangeRole }: DashboardP
     { key: 'mesas' as PageKey, label: 'Mesas', icon: Utensils },
   ];
 
-  const employeeMenuItems = adminMenuItems; // Empleado tiene los mismos módulos que admin
+  const employeeMenuItems = [
+    { key: 'dashboard' as PageKey, label: 'Inicio', icon: Home },
+    { key: 'solicitudes' as PageKey, label: 'Mis Solicitudes', icon: CircleDot },
+    // Eliminado acceso a gestión de empleados e ingresos
+
+    { key: 'insumos' as PageKey, label: 'Insumos', icon: Package },
+    { key: 'categorias' as PageKey, label: 'Categorías', icon: FolderTree },
+    { key: 'insumos-productos' as PageKey, label: 'Productos/Insumos', icon: Link2 },
+    { key: 'productos' as PageKey, label: 'Productos', icon: Box },
+    { key: 'producto-factura' as PageKey, label: 'Producto Factura', icon: Receipt },
+    { key: 'facturas' as PageKey, label: 'Facturas', icon: FileText },
+    { key: 'orden-producto' as PageKey, label: 'Pedido/Producto', icon: ClipboardList },
+    { key: 'orden' as PageKey, label: 'Pedido', icon: ShoppingCart },
+    { key: 'condicion' as PageKey, label: 'Condición', icon: CheckCircle },
+    { key: 'reservacion' as PageKey, label: 'Reservación', icon: Calendar },
+    { key: 'mesas' as PageKey, label: 'Mesas', icon: Utensils },
+  ];
 
   // Seleccionar menú según rol
   const menuItems = userRole === 'admin'
@@ -161,6 +182,10 @@ export function Dashboard({ onNavigateHome, userRole, onChangeRole }: DashboardP
         return <DocumentTypePage />;
       case 'usuarios':
         return <UsuarioPage />;
+      case 'empleados':
+        return <EmpleadosPage />;
+      case 'solicitudes':
+        return <SolicitudesPage />;
       case 'categorias':
         return <CategoriasPage />;
       case 'condicion':

@@ -10,9 +10,17 @@ const authService = {
         if (response.data.token) {
             localStorage.setItem('jwt_token', response.data.token);
             localStorage.setItem('person_id', response.data.personId);
+            if (response.data.userId) {
+                localStorage.setItem('user_id', String(response.data.userId));
+            }
 
             localStorage.setItem('user_role', response.data.role);
             localStorage.setItem('user_email', email);
+
+            // Guardar restaurantes del usuario
+            if (response.data.restaurantes && response.data.restaurantes.length > 0) {
+                localStorage.setItem('user_restaurantes', JSON.stringify(response.data.restaurantes));
+            }
             return response.data;
         }
         return response.data;
@@ -53,19 +61,13 @@ const authService = {
 
     // REGISTRO
     register: async (userData: any) => {
-        // Estructura requerida por RegisterRequestDTO:
-        // {
-        //   user: { login, email, password, firstName, lastName, authorities: [ROLE] },
-        //   person: { firstName, firstLastName, phoneNumber, documentType, documentNumber, bornDate }
-        // }
-
-        const datosParaJava = {
+        const datosParaJava: any = {
             user: {
                 login: userData.email,
                 email: userData.email,
                 password: userData.password,
                 firstName: userData.firstName,
-                lastName: userData.firstLastName, // Usamos primer apellido como last name genérico del user
+                lastName: userData.firstLastName,
                 authorities: [userData.role] // ["ROLE_CLIENT"] etc
             },
             person: {
@@ -74,11 +76,27 @@ const authService = {
                 firstLastName: userData.firstLastName,
                 secondLastName: userData.secondLastName || null,
                 phoneNumber: parseInt(userData.phoneNumber),
-                documentType: userData.documentTypeId, // Ahora se envía el String (e.g. "CC")
+                documentType: userData.documentTypeId,
                 documentNumber: parseInt(userData.documentNumber),
-                bornDate: userData.bornDate // "YYYY-MM-DD"
+                bornDate: userData.bornDate
             }
         };
+
+        // Si es admin y tiene datos de restaurante, incluirlos
+        if (userData.restaurante) {
+            datosParaJava.tipoAsociacion = "CREAR_RESTAURANTE";
+            datosParaJava.nuevoRestaurante = {
+                nombre: userData.restaurante.nombre,
+                direccion: userData.restaurante.direccion,
+                contacto: userData.restaurante.contacto
+            };
+        }
+
+        // Si es empleado y seleccionó un restaurante, enviar solicitud de asociación
+        if (userData.restauranteIdAsociar) {
+            datosParaJava.tipoAsociacion = "ASOCIAR_RESTAURANTE";
+            datosParaJava.restauranteIdAsociar = userData.restauranteIdAsociar;
+        }
 
         console.log("Enviando registro estructurado al backend:", datosParaJava);
 

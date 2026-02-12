@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import api from '../services/api';
 import { Button } from './ui/button'; // Asegúrate de que estas rutas sean correctas
 import { Card } from './ui/card';
 import { Input } from './ui/input';
@@ -38,7 +39,17 @@ export function HomePage({ onLogin }: { onLogin?: (role: any) => void }) {
   const [regPhone, setRegPhone] = useState('');
   const [regBornDate, setRegBornDate] = useState('');
   const [regRole, setRegRole] = useState('client'); // Default role
-  const [registerStep, setRegisterStep] = useState<'role' | 'form'>('role');
+  const [registerStep, setRegisterStep] = useState<'role' | 'form' | 'restaurant'>('role');
+
+  // --- ESTADOS PARA RESTAURANTE (Paso 3 - Admin) ---
+  const [regRestName, setRegRestName] = useState('');
+  const [regRestAddress, setRegRestAddress] = useState('');
+  const [regRestContact, setRegRestContact] = useState('');
+
+  // --- ESTADOS PARA SELECCIÓN DE RESTAURANTE (Paso 3 - Empleado) ---
+  const [availableRestaurants, setAvailableRestaurants] = useState<any[]>([]);
+  const [selectedRestauranteId, setSelectedRestauranteId] = useState<number | null>(null);
+  const [loadingRestaurants, setLoadingRestaurants] = useState(false);
 
   // Document Types from Enum
   const docTypes = [
@@ -85,14 +96,58 @@ export function HomePage({ onLogin }: { onLogin?: (role: any) => void }) {
     }
   };
 
-  // --- LÓGICA DE REGISTRO REAL ---
-  const handleRegisterSubmit = async (e: React.FormEvent) => {
+  // --- Cargar restaurantes disponibles para empleados ---
+  const fetchRestaurants = async () => {
+    setLoadingRestaurants(true);
+    try {
+      const response = await api.get('/api/restaurantes');
+      setAvailableRestaurants(response.data);
+    } catch (err) {
+      console.error('Error cargando restaurantes', err);
+    } finally {
+      setLoadingRestaurants(false);
+    }
+  };
+
+  // --- Paso 2 → Si es Admin o Empleado, ir al paso 3. Si es Cliente, registrar directamente ---
+  const handlePersonalDataSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (regRole === 'admin') {
+      setRegisterStep('restaurant');
+    } else if (regRole === 'employee') {
+      fetchRestaurants();
+      setRegisterStep('restaurant');
+    } else {
+      doRegister();
+    }
+  };
+
+  // --- Paso 3 (Admin): Enviar registro con datos del restaurante ---
+  const handleRestaurantSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    doRegister({
+      nombre: regRestName,
+      direccion: regRestAddress,
+      contacto: regRestContact
+    });
+  };
+
+  // --- Paso 3 (Empleado): Enviar solicitud al restaurante seleccionado ---
+  const handleEmployeeRestaurantSelect = () => {
+    if (!selectedRestauranteId) {
+      setError('Selecciona un restaurante');
+      return;
+    }
+    doRegister(undefined, selectedRestauranteId);
+  };
+
+  // --- LÓGICA DE REGISTRO REAL ---
+  const doRegister = async (restaurante?: { nombre: string; direccion: string; contacto: string }, restauranteIdAsociar?: number) => {
     setLoading(true);
     setError('');
 
     try {
-      const datosUsuario = {
+      const datosUsuario: any = {
         firstName: regFirstName,
         secondName: regSecondName,
         firstLastName: regFirstLastName,
@@ -106,6 +161,13 @@ export function HomePage({ onLogin }: { onLogin?: (role: any) => void }) {
         role: regRole === 'client' ? 'ROLE_CLIENT' : regRole === 'employee' ? 'ROLE_EMPLOYEE' : 'ROLE_ADMIN'
       };
 
+      if (restaurante) {
+        datosUsuario.restaurante = restaurante;
+      }
+      if (restauranteIdAsociar) {
+        datosUsuario.restauranteIdAsociar = restauranteIdAsociar;
+      }
+
       console.log("Enviando registro...", datosUsuario);
       await authService.register(datosUsuario);
 
@@ -113,7 +175,8 @@ export function HomePage({ onLogin }: { onLogin?: (role: any) => void }) {
 
       // Cerramos registro y abrimos login para que entre
       setIsRegisterOpen(false);
-      setEmail(regEmail); // Autocompletamos el email
+      setRegisterStep('role');
+      setEmail(regEmail);
       setIsLoginOpen(true);
 
     } catch (err) {
@@ -257,8 +320,8 @@ export function HomePage({ onLogin }: { onLogin?: (role: any) => void }) {
                 </div>
               ))}
             </div>
-          ) : (
-            <form onSubmit={handleRegisterSubmit} className="space-y-3 py-2">
+          ) : registerStep === 'form' ? (
+            <form onSubmit={handlePersonalDataSubmit} className="space-y-3 py-2">
               <button
                 type="button"
                 onClick={() => setRegisterStep('role')}
@@ -276,6 +339,7 @@ export function HomePage({ onLogin }: { onLogin?: (role: any) => void }) {
                 </div>
                 <div>
                   <p className="text-xs font-bold text-blue-900">Registrando como: {roles.find(r => r.id === regRole)?.title}</p>
+                  <p className="text-xs text-blue-700">Paso 2 de {regRole === 'admin' ? '3' : '2'} — Datos personales</p>
                 </div>
               </div>
 
@@ -348,9 +412,123 @@ export function HomePage({ onLogin }: { onLogin?: (role: any) => void }) {
               </div>
 
               <Button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700 mt-2" disabled={loading}>
-                {loading ? 'Registrando...' : 'Registrarse Gratis'}
+                {regRole === 'admin' ? 'Siguiente → Datos del Restaurante' : regRole === 'employee' ? 'Siguiente → Seleccionar Restaurante' : (loading ? 'Registrando...' : 'Registrarse Gratis')}
               </Button>
             </form>
+          ) : regRole === 'admin' ? (
+            /* ========== PASO 3 ADMIN: FORMULARIO DE RESTAURANTE ========== */
+            <form onSubmit={handleRestaurantSubmit} className="space-y-3 py-2">
+              <button
+                type="button"
+                onClick={() => setRegisterStep('form')}
+                className="text-xs text-slate-500 hover:text-blue-600 flex items-center gap-1 mb-2"
+              >
+                ← Volver a datos personales
+              </button>
+
+              <div className="bg-amber-50 p-3 rounded-lg mb-4 flex items-center gap-2 border border-amber-200">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center text-white text-xs">
+                  🍽️
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-amber-900">Paso 3 de 3 — Tu Restaurante</p>
+                  <p className="text-xs text-amber-700">Ingresa los datos de tu restaurante</p>
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <Label>Nombre del Restaurante</Label>
+                <Input
+                  value={regRestName}
+                  onChange={(e) => setRegRestName(e.target.value)}
+                  placeholder="Ej: La Casona Gourmet"
+                  required
+                />
+              </div>
+              <div className="space-y-1">
+                <Label>Dirección</Label>
+                <Input
+                  value={regRestAddress}
+                  onChange={(e) => setRegRestAddress(e.target.value)}
+                  placeholder="Ej: Calle 45 #12-34, Bogotá"
+                  required
+                />
+              </div>
+              <div className="space-y-1">
+                <Label>Teléfono de Contacto</Label>
+                <Input
+                  type="tel"
+                  value={regRestContact}
+                  onChange={(e) => setRegRestContact(e.target.value)}
+                  placeholder="Ej: 3001234567"
+                  required
+                />
+              </div>
+
+              <Button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700 mt-2" disabled={loading}>
+                {loading ? 'Registrando...' : '¡Crear Cuenta y Restaurante!'}
+              </Button>
+            </form>
+          ) : (
+            /* ========== PASO 3 EMPLEADO: SELECCIONAR RESTAURANTE ========== */
+            <div className="space-y-3 py-2">
+              <button
+                type="button"
+                onClick={() => setRegisterStep('form')}
+                className="text-xs text-slate-500 hover:text-blue-600 flex items-center gap-1 mb-2"
+              >
+                ← Volver a datos personales
+              </button>
+
+              <div className="bg-indigo-50 p-3 rounded-lg mb-4 flex items-center gap-2 border border-indigo-200">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-xs">
+                  🏢
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-indigo-900">Paso 3 de 3 — Selecciona Restaurante</p>
+                  <p className="text-xs text-indigo-700">Elige el restaurante donde deseas trabajar</p>
+                </div>
+              </div>
+
+              {loadingRestaurants ? (
+                <p className="text-center text-slate-500 py-4">Cargando restaurantes...</p>
+              ) : availableRestaurants.length === 0 ? (
+                <div className="text-center py-4">
+                  <p className="text-slate-500">No hay restaurantes registrados aún.</p>
+                  <p className="text-xs text-slate-400 mt-1">Puedes registrarte sin restaurante y asociarte después.</p>
+                  <Button onClick={() => doRegister()} className="mt-3 bg-emerald-600 hover:bg-emerald-700" disabled={loading}>
+                    {loading ? 'Registrando...' : 'Registrarse sin restaurante'}
+                  </Button>
+                </div>
+              ) : (
+                <>
+                  <div className="max-h-52 overflow-y-auto space-y-2 pr-1">
+                    {availableRestaurants.map((rest: any) => (
+                      <div
+                        key={rest.id}
+                        onClick={() => setSelectedRestauranteId(rest.id)}
+                        className={`p-3 rounded-lg border cursor-pointer transition-all ${selectedRestauranteId === rest.id
+                            ? 'border-indigo-500 bg-indigo-50 ring-2 ring-indigo-300'
+                            : 'border-slate-200 hover:border-indigo-300 hover:bg-slate-50'
+                          }`}
+                      >
+                        <p className="font-semibold text-sm text-slate-900">{rest.nombre}</p>
+                        <p className="text-xs text-slate-500">📍 {rest.direccion}</p>
+                        <p className="text-xs text-slate-500">📞 {rest.contacto}</p>
+                      </div>
+                    ))}
+                  </div>
+
+                  <Button
+                    onClick={handleEmployeeRestaurantSelect}
+                    className="w-full bg-emerald-600 hover:bg-emerald-700 mt-2"
+                    disabled={loading || !selectedRestauranteId}
+                  >
+                    {loading ? 'Registrando...' : '¡Enviar Solicitud y Registrarse!'}
+                  </Button>
+                </>
+              )}
+            </div>
           )}
 
           <div className="text-center text-sm text-slate-500 mt-2">
