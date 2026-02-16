@@ -14,16 +14,16 @@ interface Orden {
   mesa: number;
   items: number;
   total: number;
-  estado: 'Completado' | 'En Proceso' | 'Pendiente';
+  estado: 'PENDIENTE' | 'PREPARACION' | 'ENTREGADO' | 'CANCELADO';
   hora: string;
 }
 
 export function OrdenPage() {
   const [ordenes, setOrdenes] = useState<Orden[]>([
-    { id: 'ORD-001', mesa: 2, items: 3, total: 45.50, estado: 'En Proceso', hora: '14:30' },
-    { id: 'ORD-002', mesa: 5, items: 5, total: 78.99, estado: 'Pendiente', hora: '14:45' },
-    { id: 'ORD-003', mesa: 1, items: 2, total: 23.00, estado: 'Completado', hora: '14:15' },
-    { id: 'ORD-004', mesa: 3, items: 4, total: 56.75, estado: 'En Proceso', hora: '14:50' },
+    { id: 'ORD-001', mesa: 2, items: 3, total: 45.50, estado: 'PREPARACION', hora: '14:30' },
+    { id: 'ORD-002', mesa: 5, items: 5, total: 78.99, estado: 'PENDIENTE', hora: '14:45' },
+    { id: 'ORD-003', mesa: 1, items: 2, total: 23.00, estado: 'ENTREGADO', hora: '14:15' },
+    { id: 'ORD-004', mesa: 3, items: 4, total: 56.75, estado: 'PREPARACION', hora: '14:50' },
   ]);
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -34,7 +34,7 @@ export function OrdenPage() {
     mesa: 1,
     items: 0,
     total: 0,
-    estado: 'Pendiente' as 'Completado' | 'En Proceso' | 'Pendiente',
+    estado: 'PENDIENTE' as 'PENDIENTE' | 'PREPARACION' | 'ENTREGADO' | 'CANCELADO',
     hora: '',
   });
 
@@ -67,7 +67,7 @@ export function OrdenPage() {
       mesa: 1,
       items: 0,
       total: 0,
-      estado: 'Pendiente',
+      estado: 'PENDIENTE',
       hora,
     });
     setIsViewMode(false);
@@ -126,11 +126,13 @@ export function OrdenPage() {
                 <TableCell>
                   <Badge
                     className={
-                      orden.estado === 'Completado'
+                      orden.estado === 'ENTREGADO'
                         ? 'bg-green-500'
-                        : orden.estado === 'En Proceso'
-                        ? 'bg-blue-500'
-                        : 'bg-yellow-500'
+                        : orden.estado === 'PREPARACION'
+                          ? 'bg-blue-500'
+                          : orden.estado === 'CANCELADO'
+                            ? 'bg-red-500'
+                            : 'bg-yellow-500'
                     }
                   >
                     {orden.estado}
@@ -138,24 +140,24 @@ export function OrdenPage() {
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-2">
-                    <Button 
-                      variant="ghost" 
+                    <Button
+                      variant="ghost"
                       size="icon"
                       onClick={() => handleView(orden)}
                       className="hover:bg-blue-50 hover:text-blue-600"
                     >
                       <Eye className="w-4 h-4" />
                     </Button>
-                    <Button 
-                      variant="ghost" 
+                    <Button
+                      variant="ghost"
                       size="icon"
                       onClick={() => handleEdit(orden)}
                       className="hover:bg-amber-50 hover:text-amber-600"
                     >
                       <Edit className="w-4 h-4" />
                     </Button>
-                    <Button 
-                      variant="ghost" 
+                    <Button
+                      variant="ghost"
                       size="icon"
                       onClick={() => handleDelete(orden.id)}
                       className="hover:bg-red-50 hover:text-red-600"
@@ -208,8 +210,8 @@ export function OrdenPage() {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <Label htmlFor="id">N° Orden *</Label>
-                <Input 
-                  id="id" 
+                <Input
+                  id="id"
                   value={formData.id}
                   onChange={(e) => setFormData({ ...formData, id: e.target.value })}
                   required
@@ -218,8 +220,8 @@ export function OrdenPage() {
               </div>
               <div>
                 <Label htmlFor="mesa">Mesa *</Label>
-                <Input 
-                  id="mesa" 
+                <Input
+                  id="mesa"
                   type="number"
                   min="1"
                   value={formData.mesa}
@@ -229,8 +231,8 @@ export function OrdenPage() {
               </div>
               <div>
                 <Label htmlFor="items">Cantidad de Items *</Label>
-                <Input 
-                  id="items" 
+                <Input
+                  id="items"
                   type="number"
                   min="0"
                   value={formData.items}
@@ -240,8 +242,8 @@ export function OrdenPage() {
               </div>
               <div>
                 <Label htmlFor="total">Total *</Label>
-                <Input 
-                  id="total" 
+                <Input
+                  id="total"
                   type="number"
                   step="0.01"
                   min="0"
@@ -253,8 +255,8 @@ export function OrdenPage() {
               </div>
               <div>
                 <Label htmlFor="hora">Hora *</Label>
-                <Input 
-                  id="hora" 
+                <Input
+                  id="hora"
                   type="time"
                   value={formData.hora}
                   onChange={(e) => setFormData({ ...formData, hora: e.target.value })}
@@ -265,7 +267,7 @@ export function OrdenPage() {
                 <Label htmlFor="estado">Estado *</Label>
                 <Select
                   value={formData.estado}
-                  onValueChange={(value: 'Completado' | 'En Proceso' | 'Pendiente') => 
+                  onValueChange={(value: 'PENDIENTE' | 'PREPARACION' | 'ENTREGADO' | 'CANCELADO') =>
                     setFormData({ ...formData, estado: value })
                   }
                 >
@@ -273,9 +275,10 @@ export function OrdenPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Pendiente">Pendiente</SelectItem>
-                    <SelectItem value="En Proceso">En Proceso</SelectItem>
-                    <SelectItem value="Completado">Completado</SelectItem>
+                    <SelectItem value="PENDIENTE">Pendiente</SelectItem>
+                    <SelectItem value="PREPARACION">En Proceso</SelectItem>
+                    <SelectItem value="ENTREGADO">Entregado</SelectItem>
+                    <SelectItem value="CANCELADO">Cancelado</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

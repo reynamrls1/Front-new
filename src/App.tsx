@@ -6,6 +6,8 @@ import { LoginPage } from './components/LoginPage';
 import { HomePage } from './components/HomePage';
 import { Dashboard } from './components/Dashboard';
 import { ProtectedRoute } from './components/ProtectedRoute';
+import { ForgotPasswordPage } from './components/ForgotPasswordPage';
+import { ResetPasswordPage } from './components/ResetPasswordPage';
 import authService from './services/authService';
 
 export type UserRole = 'admin' | 'client' | 'employee';
@@ -36,6 +38,10 @@ function App() {
 
           {/* El Login directo (por si alguien escribe /login) */}
           <Route path="/login" element={<LoginPage onLogin={(role: UserRole) => setUserRole(role)} />} />
+
+          {/* Rutas de recuperación de contraseña */}
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
 
 
           {/* 2. EL DASHBOARD ES EL QUE ESTÁ PROTEGIDO (Solo entran si están registrados) */}

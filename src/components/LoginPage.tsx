@@ -98,6 +98,15 @@ export function LoginPage({ onLogin }: any) {
           <Button type="submit" className="w-full" disabled={loading}>
             {loading ? 'Ingresando...' : 'Ingresar'}
           </Button>
+
+          <div className="text-center mt-4">
+            <a
+              href="/forgot-password"
+              className="text-sm text-blue-600 hover:text-blue-800 hover:underline"
+            >
+              ¿Olvidaste tu contraseña?
+            </a>
+          </div>
         </form>
       </Card>
     </div>

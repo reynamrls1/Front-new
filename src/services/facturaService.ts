@@ -8,11 +8,12 @@ export interface FacturaDTO {
     personNombre?: string;
     cantidadProductos?: number;
     estado?: 'Pagada' | 'Pendiente' | 'Vencida'; // Frontend-only for display
+    restauranteId?: number;
 }
 
 const facturaService = {
-    getAll: async () => {
-        const response = await api.get<FacturaDTO[]>('/api/facturas');
+    getAll: async (restauranteId: number) => {
+        const response = await api.get<FacturaDTO[]>(`/api/facturas?restauranteId=${restauranteId}`);
         return response.data;
     },
 

@@ -23,8 +23,10 @@ export interface InsumosProductoCreateDTO {
 }
 
 const insumosProductoService = {
-    getAll: async () => {
-        const response = await api.get<InsumosProductoDTO[]>('/api/insumos-producto');
+    getAll: async (restauranteId?: number) => {
+        const response = await api.get<InsumosProductoDTO[]>('/api/insumos-producto', {
+            params: { restauranteId }
+        });
         return response.data;
     },
 

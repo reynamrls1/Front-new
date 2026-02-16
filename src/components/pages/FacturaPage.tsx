@@ -28,6 +28,7 @@ export function FacturasPage() {
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [currentFactura, setCurrentFactura] = useState<FacturaDTO | null>(null);
   const [facturaProducts, setFacturaProducts] = useState<ProductoFacturaDTO[]>([]);
+  const [restauranteId, setRestauranteId] = useState<number | null>(null);
 
   // Form state for creating new factura
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -35,15 +36,31 @@ export function FacturasPage() {
   const [quantity, setQuantity] = useState<number>(1);
 
   useEffect(() => {
-    loadData();
+    const str = localStorage.getItem('restaurante');
+    if (str) {
+      try {
+        const parsed = JSON.parse(str);
+        const id = parsed.restauranteId || parsed.id;
+        setRestauranteId(Number(id));
+      } catch (e) {
+        console.error("Error parsing restaurante from localStorage", e);
+      }
+    }
   }, []);
+
+  useEffect(() => {
+    if (restauranteId) {
+      loadData();
+    }
+  }, [restauranteId]);
 
   const loadData = async () => {
     try {
+      if (!restauranteId) return;
       setLoading(true);
       const [facturasData, productsData] = await Promise.all([
-        facturaService.getAll(),
-        productoService.getAll()
+        facturaService.getAll(restauranteId),
+        productoService.getAll(restauranteId)
       ]);
       setFacturas(facturasData);
       setProducts(productsData);
@@ -141,7 +158,8 @@ export function FacturasPage() {
       const facturaData: FacturaDTO = {
         personId: personId,
         date: new Date().toISOString().split('T')[0],
-        total: calculateTotal()
+        total: calculateTotal(),
+        restauranteId: restauranteId!
       };
 
       const createdFactura = await facturaService.create(facturaData);

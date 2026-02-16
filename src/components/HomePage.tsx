@@ -147,6 +147,20 @@ export function HomePage({ onLogin }: { onLogin?: (role: any) => void }) {
     setError('');
 
     try {
+      // --- VALIDACIÓN DE CONTRASEÑA ---
+      if (regPassword.length > 60) {
+        setError("La contraseña no puede tener más de 60 caracteres.");
+        setLoading(false);
+        return;
+      }
+      const passwordRegex = /^(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).*$/;
+      if (!passwordRegex.test(regPassword)) {
+        setError("La contraseña debe tener al menos una mayúscula, un número y un signo (caracter especial).");
+        setLoading(false);
+        return;
+      }
+      // --------------------------------
+
       const datosUsuario: any = {
         firstName: regFirstName,
         secondName: regSecondName,
@@ -179,9 +193,14 @@ export function HomePage({ onLogin }: { onLogin?: (role: any) => void }) {
       setEmail(regEmail);
       setIsLoginOpen(true);
 
-    } catch (err) {
-      console.error(err);
-      setError('Error al registrar. Verifica los datos.');
+    } catch (err: any) {
+      console.error("Registration Error Details:", err);
+      // Mostrar mensaje detallado del backend si existe
+      if (err.response && err.response.data && (err.response.data.message || err.response.data.error)) {
+        setError(`Error: ${err.response.data.message || err.response.data.error}`);
+      } else {
+        setError('Error al registrar. Verifica los datos.');
+      }
     } finally {
       setLoading(false);
     }
@@ -276,6 +295,15 @@ export function HomePage({ onLogin }: { onLogin?: (role: any) => void }) {
             <Button type="submit" className="w-full bg-blue-600" disabled={loading}>
               {loading ? 'Entrando...' : 'Ingresar'}
             </Button>
+
+            <div className="text-center mt-2">
+              <a
+                href="/forgot-password"
+                className="text-xs text-blue-600 hover:text-blue-800 hover:underline"
+              >
+                ¿Olvidaste tu contraseña?
+              </a>
+            </div>
           </form>
 
           {/* Enlace para registrarse desde el Login */}
@@ -506,10 +534,13 @@ export function HomePage({ onLogin }: { onLogin?: (role: any) => void }) {
                     {availableRestaurants.map((rest: any) => (
                       <div
                         key={rest.id}
-                        onClick={() => setSelectedRestauranteId(rest.id)}
+                        onClick={() => {
+                          console.log("Seleccionando restaurante:", rest);
+                          setSelectedRestauranteId(Number(rest.id));
+                        }}
                         className={`p-3 rounded-lg border cursor-pointer transition-all ${selectedRestauranteId === rest.id
-                            ? 'border-indigo-500 bg-indigo-50 ring-2 ring-indigo-300'
-                            : 'border-slate-200 hover:border-indigo-300 hover:bg-slate-50'
+                          ? 'border-green-500 bg-green-50 ring-2 ring-green-300'
+                          : 'border-slate-200 hover:border-indigo-300 hover:bg-slate-50'
                           }`}
                       >
                         <p className="font-semibold text-sm text-slate-900">{rest.nombre}</p>

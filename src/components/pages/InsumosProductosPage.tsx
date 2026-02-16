@@ -17,6 +17,7 @@ export const InsumosProductosPage: React.FC = () => {
   const [insumos, setInsumos] = useState<InsumoDTO[]>([]);
   const [measures, setMeasures] = useState<MedidaDTO[]>([]);
   const [loading, setLoading] = useState(true);
+  const [restauranteId, setRestauranteId] = useState<number | null>(null);
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -28,16 +29,32 @@ export const InsumosProductosPage: React.FC = () => {
   const [amount, setAmount] = useState<string>('');
 
   useEffect(() => {
-    loadData();
+    const str = localStorage.getItem('restaurante');
+    if (str) {
+      try {
+        const parsed = JSON.parse(str);
+        const id = parsed.restauranteId || parsed.id;
+        setRestauranteId(Number(id));
+      } catch (e) {
+        console.error("Error parsing restaurante from localStorage", e);
+      }
+    }
   }, []);
+
+  useEffect(() => {
+    if (restauranteId) {
+      loadData();
+    }
+  }, [restauranteId]);
 
   const loadData = async () => {
     try {
+      if (!restauranteId) return;
       setLoading(true);
       const [recipesData, productsData, insumosData, measuresData] = await Promise.all([
-        insumosProductoService.getAll(),
-        productoService.getAll(),
-        insumoService.getAll(),
+        insumosProductoService.getAll(restauranteId),
+        productoService.getAll(restauranteId),
+        insumoService.getAll(restauranteId),
         medidasService.getAll()
       ]);
       setRecipes(recipesData);
