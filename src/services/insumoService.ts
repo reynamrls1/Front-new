@@ -5,14 +5,14 @@ export interface InsumoDTO {
     nombre: string;    // Backend: nombre
     marca?: string;
     cantidad?: number; // Backend: cantidad
-    categoriaId?: number;
+    categoria?: string; // Backend: CategoriaEnum (ALIMENTOS, BEBIDAS, LIMPIEZA, OTROS)
     medida?: string;   // Backend: medida (Enum)
-    categoriaNombre?: string;
+    restauranteId?: number;
 }
 
 const insumoService = {
-    getAll: async () => {
-        const response = await api.get<InsumoDTO[]>('/api/insumos');
+    getAll: async (restauranteId: number) => {
+        const response = await api.get<InsumoDTO[]>(`/api/insumos?restauranteId=${restauranteId}`);
         return response.data;
     },
 

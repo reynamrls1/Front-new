@@ -6,12 +6,13 @@ export interface ProductDTO {
     price: number;
     description?: string;
     imageUrl?: string;
-    calculatedStock?: number;  // Auto-calculated from insumo availability
+    calculatedStock?: number;
+    restauranteId?: number;
 }
 
 const productoService = {
-    getAll: async () => {
-        const response = await api.get<ProductDTO[]>('/api/productos');
+    getAll: async (restauranteId: number) => {
+        const response = await api.get<ProductDTO[]>(`/api/productos?restauranteId=${restauranteId}`);
         return response.data;
     },
 
@@ -20,13 +21,36 @@ const productoService = {
         return response.data;
     },
 
-    create: async (data: ProductDTO) => {
-        const response = await api.post<ProductDTO>('/api/productos', data);
+    create: async (data: ProductDTO, image?: File) => {
+        const formData = new FormData();
+        // Append data as a Blob with JSON content type, OR as a string.
+        // Backend expects @RequestPart("data") String dataJson, so string is correct.
+        formData.append('data', JSON.stringify(data));
+
+        if (image) {
+            formData.append('image', image);
+        }
+
+        const response = await api.post<ProductDTO>('/api/productos', formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data',
+            },
+        });
         return response.data;
     },
 
-    update: async (id: number, data: ProductDTO) => {
-        const response = await api.put<ProductDTO>(`/api/productos/${id}`, data);
+    update: async (id: number, data: ProductDTO, image?: File) => {
+        const formData = new FormData();
+        formData.append('data', JSON.stringify(data));
+        if (image) {
+            formData.append('image', image);
+        }
+
+        const response = await api.put<ProductDTO>(`/api/productos/${id}`, formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data',
+            },
+        });
         return response.data;
     },
 

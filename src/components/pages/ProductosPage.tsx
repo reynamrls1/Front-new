@@ -14,16 +14,34 @@ export const ProductosPage: React.FC = () => {
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<ProductDTO | null>(null);
+  const [restauranteId, setRestauranteId] = useState<number | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [formData, setFormData] = useState<Partial<ProductDTO>>({ name: '', description: '', price: 0 });
 
   useEffect(() => {
-    loadData();
+    const str = localStorage.getItem('restaurante');
+    if (str) {
+      try {
+        const parsed = JSON.parse(str);
+        const id = parsed.restauranteId || parsed.id;
+        setRestauranteId(Number(id));
+      } catch (e) {
+        console.error("Error parsing restaurante from localStorage", e);
+      }
+    }
   }, []);
+
+  useEffect(() => {
+    if (restauranteId) {
+      loadData();
+    }
+  }, [restauranteId]);
 
   const loadData = async () => {
     try {
+      if (!restauranteId) return;
       setLoading(true);
-      const data = await productoService.getAll();
+      const data = await productoService.getAll(restauranteId);
       setProducts(data);
     } catch (error) {
       console.error(error);
@@ -45,6 +63,7 @@ export const ProductosPage: React.FC = () => {
       setEditingProduct(null);
       setFormData({ name: '', description: '', price: 0 });
     }
+    setSelectedFile(null);
     setIsDialogOpen(true);
   };
 
@@ -58,15 +77,16 @@ export const ProductosPage: React.FC = () => {
       id: editingProduct?.id,
       name: formData.name,
       description: formData.description || '',
-      price: formData.price
+      price: formData.price,
+      restauranteId: restauranteId!
     };
 
     try {
       if (editingProduct) {
-        await productoService.update(editingProduct.id!, payload);
+        await productoService.update(editingProduct.id!, payload, selectedFile || undefined);
         toast.success("Producto actualizado");
       } else {
-        await productoService.create(payload);
+        await productoService.create(payload, selectedFile || undefined);
         toast.success("Producto creado");
       }
       setIsDialogOpen(false);
@@ -140,8 +160,8 @@ export const ProductosPage: React.FC = () => {
                 <TableCell>${product.price.toLocaleString()}</TableCell>
                 <TableCell>
                   <span className={`px-2 py-1 rounded-full text-xs font-bold ${(product.calculatedStock !== undefined && product.calculatedStock !== null)
-                      ? (product.calculatedStock < 5 ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700')
-                      : 'bg-gray-100 text-gray-700'
+                    ? (product.calculatedStock < 5 ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700')
+                    : 'bg-gray-100 text-gray-700'
                     }`}>
                     {product.calculatedStock !== undefined ? product.calculatedStock : 'N/A'}
                   </span>
@@ -187,6 +207,14 @@ export const ProductosPage: React.FC = () => {
             <div className="space-y-2">
               <label className="text-sm font-medium">Precio</label>
               <Input type="number" value={formData.price} onChange={e => setFormData({ ...formData, price: parseFloat(e.target.value) })} />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Imagen</label>
+              <Input type="file" onChange={e => {
+                if (e.target.files && e.target.files[0]) {
+                  setSelectedFile(e.target.files[0]);
+                }
+              }} />
             </div>
             <p className="text-sm text-gray-500 mt-2">
               El stock se calcula automáticamente según los insumos disponibles y la receta del producto.

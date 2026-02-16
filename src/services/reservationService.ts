@@ -36,6 +36,12 @@ const reservationService = {
             condition: 'CANCELLED'
         });
         return response.data;
+    },
+
+    // Get by Restaurante
+    getReservationsByRestaurante: async (restauranteId: number) => {
+        const response = await api.get(`/api/reservaciones/restaurante/${restauranteId}`);
+        return response.data;
     }
 };
 

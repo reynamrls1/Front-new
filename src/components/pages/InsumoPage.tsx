@@ -16,10 +16,12 @@ export const InsumoPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
 
+  const [restauranteId, setRestauranteId] = useState<number | null>(null);
+
   // Create/Edit Dialog State
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingInsumo, setEditingInsumo] = useState<InsumoDTO | null>(null);
-  const [formData, setFormData] = useState<Partial<InsumoDTO>>({ nombre: '', marca: '', cantidad: 0, medida: '' });
+  const [formData, setFormData] = useState<Partial<InsumoDTO>>({ nombre: '', marca: '', cantidad: 0, medida: '', categoria: '' });
 
   // Add Stock Dialog State
   const [isAddStockOpen, setIsAddStockOpen] = useState(false);
@@ -27,14 +29,30 @@ export const InsumoPage: React.FC = () => {
   const [stockAmount, setStockAmount] = useState<string>("");
 
   useEffect(() => {
-    loadData();
+    const str = localStorage.getItem('restaurante');
+    if (str) {
+      try {
+        const parsed = JSON.parse(str);
+        const id = parsed.restauranteId || parsed.id;
+        setRestauranteId(Number(id));
+      } catch (e) {
+        console.error("Error parsing restaurante from localStorage", e);
+      }
+    }
   }, []);
+
+  useEffect(() => {
+    if (restauranteId) {
+      loadData();
+    }
+  }, [restauranteId]);
 
   const loadData = async () => {
     try {
+      if (!restauranteId) return;
       setLoading(true);
       const [insumosData, measuresData] = await Promise.all([
-        insumoService.getAll(),
+        insumoService.getAll(restauranteId),
         medidasService.getAll()
       ]);
       setInsumos(insumosData);
@@ -55,11 +73,12 @@ export const InsumoPage: React.FC = () => {
         nombre: insumo.nombre,
         marca: insumo.marca,
         cantidad: insumo.cantidad,
-        medida: insumo.medida
+        medida: insumo.medida,
+        categoria: insumo.categoria
       });
     } else {
       setEditingInsumo(null);
-      setFormData({ nombre: '', marca: '', cantidad: 0, medida: '' });
+      setFormData({ nombre: '', marca: '', cantidad: 0, medida: '', categoria: '' });
     }
     setIsCreateOpen(true);
   };
@@ -76,7 +95,8 @@ export const InsumoPage: React.FC = () => {
       marca: formData.marca,
       cantidad: formData.cantidad || 0,
       medida: formData.medida,
-      categoriaId: 1 // Default cat for now or add selector
+      categoria: formData.categoria || 'OTROS',
+      restauranteId: restauranteId!
     };
 
     try {
@@ -252,6 +272,23 @@ export const InsumoPage: React.FC = () => {
                       {m.nombre}
                     </SelectItem>
                   ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Categoría</label>
+              <Select
+                value={formData.categoria || ""}
+                onValueChange={(val) => setFormData({ ...formData, categoria: val })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecciona categoría" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALIMENTOS">Alimentos</SelectItem>
+                  <SelectItem value="BEBIDAS">Bebidas</SelectItem>
+                  <SelectItem value="LIMPIEZA">Limpieza</SelectItem>
+                  <SelectItem value="OTROS">Otros</SelectItem>
                 </SelectContent>
               </Select>
             </div>

@@ -40,8 +40,6 @@ import {
 import { Footer } from './Footer';
 
 // Importar las páginas de contenido
-import { CategoriasPage } from './pages/CategoriasPage';
-import { EstadosPage } from './pages/EstadosPage';
 import { FacturasPage } from './pages/FacturaPage';
 import { IngresosInsumosPage } from './pages/IngresoInsumosPage';
 import { IngresosPage } from './pages/IngresosPage';
@@ -50,13 +48,11 @@ import { InsumosProductosPage } from './pages/InsumosProductosPage';
 
 import { MesasPage } from './pages/MesasPage';
 import { OrdenPage } from './pages/OrdenPage';
-import { OrdenProductoPage } from './pages/OrdenProductoPage';
-import { ProductoFacturaPage } from './pages/ProductoFacturaPage';
+
 import { ReservacionPage } from './pages/ReservacionPage';
 import { DashboardHome } from './pages/DashboardHome';
-import { DocumentTypePage } from './pages/DocumentTypePage';
+
 import { UsuarioPage } from './pages/UsuarioPage';
-import { CondicionPage } from './pages/CondicionPage';
 import { InsumoPage as InsumosPage } from './pages/InsumoPage';
 import { SolicitudesPage } from './pages/SolicitudesPage';
 import { EmpleadosPage } from './pages/EmpleadosPage';
@@ -71,13 +67,10 @@ interface DashboardProps {
 
 type PageKey =
   | 'dashboard'
-  | 'document-type'
+
   | 'usuarios'
   | 'empleados'
   | 'solicitudes'
-  | 'categorias'
-  | 'condicion'
-  | 'estados'
   | 'facturas'
   | 'ingresos-insumos'
   | 'ingresos'
@@ -87,8 +80,7 @@ type PageKey =
 
   | 'mesas'
   | 'orden'
-  | 'orden-producto'
-  | 'producto-factura'
+
   | 'reservacion';
 
 export function Dashboard({ onNavigateHome, userRole, onChangeRole }: DashboardProps) {
@@ -101,6 +93,7 @@ export function Dashboard({ onNavigateHome, userRole, onChangeRole }: DashboardP
   const [personPhone, setPersonPhone] = useState('');
 
   useEffect(() => {
+
     const fetchUserData = async () => {
       try {
         const currentUser = authService.getCurrentUser();
@@ -111,6 +104,27 @@ export function Dashboard({ onNavigateHome, userRole, onChangeRole }: DashboardP
           const storedEmail = localStorage.getItem('user_email');
           if (storedEmail) setPersonEmail(storedEmail);
         }
+
+        // AUTO-SELECT RESTAURANT IF MISSING
+        if (!localStorage.getItem('restaurante')) {
+          const storedRestaurantes = localStorage.getItem('user_restaurantes');
+          if (storedRestaurantes) {
+            try {
+              const parsed = JSON.parse(storedRestaurantes);
+              if (Array.isArray(parsed) && parsed.length > 0) {
+                console.log("Auto-seleccionando restaurante:", parsed[0]);
+                localStorage.setItem('restaurante', JSON.stringify(parsed[0]));
+                // Force reload to apply changes if needed, or just let components read it?
+                // Components read it on mount usually. Since dashboard mounts components dynamically, it might be fine.
+                // But if ProductosPage is already mounted (default), it might need a trigger.
+                // However, setCurrentPage('dashboard') is default.
+              }
+            } catch (e) {
+              console.error("Error parsing user_restaurantes", e);
+            }
+          }
+        }
+
       } catch (error) {
         console.error("Error cargando perfil", error);
       }
@@ -123,46 +137,36 @@ export function Dashboard({ onNavigateHome, userRole, onChangeRole }: DashboardP
     { key: 'dashboard' as PageKey, label: 'Inicio', icon: Home },
     { key: 'solicitudes' as PageKey, label: 'Solicitudes', icon: CircleDot },
     { key: 'empleados' as PageKey, label: 'Empleados', icon: Users },
-    { key: 'document-type' as PageKey, label: 'Tipo de Documento', icon: FileType },
+    // Eliminado: Document Type
     { key: 'ingresos' as PageKey, label: 'Ingresos', icon: DollarSign },
     { key: 'ingresos-insumos' as PageKey, label: 'Ingreso/Insumo', icon: TrendingUp },
     { key: 'insumos' as PageKey, label: 'Insumos', icon: Package },
 
-    { key: 'categorias' as PageKey, label: 'Categorías', icon: FolderTree },
-    { key: 'insumos-productos' as PageKey, label: 'Productos/Insumos', icon: Link2 },
+    { key: 'insumos-productos' as PageKey, label: 'Recetas', icon: Link2 }, // Renamed to clarify
     { key: 'productos' as PageKey, label: 'Productos', icon: Box },
-    { key: 'producto-factura' as PageKey, label: 'Producto Factura', icon: Receipt },
+    // Eliminado: Producto Factura
     { key: 'facturas' as PageKey, label: 'Facturas', icon: FileText },
-    { key: 'orden-producto' as PageKey, label: 'Pedido/Producto', icon: ClipboardList },
+    // Eliminado: Pedido/Producto
     { key: 'orden' as PageKey, label: 'Pedido', icon: ShoppingCart },
-    { key: 'condicion' as PageKey, label: 'Condición', icon: CheckCircle },
     { key: 'reservacion' as PageKey, label: 'Reservación', icon: Calendar },
     { key: 'mesas' as PageKey, label: 'Mesas', icon: Utensils },
   ];
 
   const clientMenuItems = [
     { key: 'dashboard' as PageKey, label: 'Inicio', icon: Home },
-    { key: 'insumos-productos' as PageKey, label: 'Producto/Insumo', icon: Link2 },
-    { key: 'productos' as PageKey, label: 'Productos', icon: Box },
-    { key: 'orden' as PageKey, label: 'Pedido', icon: ShoppingCart },
-    { key: 'reservacion' as PageKey, label: 'Reservación', icon: Calendar },
-    { key: 'mesas' as PageKey, label: 'Mesas', icon: Utensils },
+    { key: 'reservacion' as PageKey, label: 'Reservar Restaurante', icon: Calendar },
+    // { key: 'mesas' as PageKey, label: 'Mesas', icon: Utensils }, // Maybe keep or remove? Keep for now.
   ];
 
   const employeeMenuItems = [
     { key: 'dashboard' as PageKey, label: 'Inicio', icon: Home },
     { key: 'solicitudes' as PageKey, label: 'Mis Solicitudes', icon: CircleDot },
-    // Eliminado acceso a gestión de empleados e ingresos
 
     { key: 'insumos' as PageKey, label: 'Insumos', icon: Package },
-    { key: 'categorias' as PageKey, label: 'Categorías', icon: FolderTree },
-    { key: 'insumos-productos' as PageKey, label: 'Productos/Insumos', icon: Link2 },
+    { key: 'insumos-productos' as PageKey, label: 'Recetas', icon: Link2 },
     { key: 'productos' as PageKey, label: 'Productos', icon: Box },
-    { key: 'producto-factura' as PageKey, label: 'Producto Factura', icon: Receipt },
-    { key: 'facturas' as PageKey, label: 'Facturas', icon: FileText },
-    { key: 'orden-producto' as PageKey, label: 'Pedido/Producto', icon: ClipboardList },
+
     { key: 'orden' as PageKey, label: 'Pedido', icon: ShoppingCart },
-    { key: 'condicion' as PageKey, label: 'Condición', icon: CheckCircle },
     { key: 'reservacion' as PageKey, label: 'Reservación', icon: Calendar },
     { key: 'mesas' as PageKey, label: 'Mesas', icon: Utensils },
   ];
@@ -178,20 +182,13 @@ export function Dashboard({ onNavigateHome, userRole, onChangeRole }: DashboardP
     switch (currentPage) {
       case 'dashboard':
         return <DashboardHome />;
-      case 'document-type':
-        return <DocumentTypePage />;
+
       case 'usuarios':
         return <UsuarioPage />;
       case 'empleados':
         return <EmpleadosPage />;
       case 'solicitudes':
         return <SolicitudesPage />;
-      case 'categorias':
-        return <CategoriasPage />;
-      case 'condicion':
-        return <CondicionPage />;
-      case 'estados':
-        return <EstadosPage />;
       case 'facturas':
         return <FacturasPage />;
       case 'ingresos-insumos':
@@ -209,10 +206,7 @@ export function Dashboard({ onNavigateHome, userRole, onChangeRole }: DashboardP
         return <MesasPage />;
       case 'orden':
         return <OrdenPage />;
-      case 'orden-producto':
-        return <OrdenProductoPage />;
-      case 'producto-factura':
-        return <ProductoFacturaPage />;
+
       case 'reservacion':
         return <ReservacionPage />;
       default:

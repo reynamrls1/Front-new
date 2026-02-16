@@ -20,6 +20,8 @@ const authService = {
             // Guardar restaurantes del usuario
             if (response.data.restaurantes && response.data.restaurantes.length > 0) {
                 localStorage.setItem('user_restaurantes', JSON.stringify(response.data.restaurantes));
+                // Auto-seleccionar el primer restaurante por defecto
+                localStorage.setItem('restaurante', JSON.stringify(response.data.restaurantes[0]));
             }
             return response.data;
         }

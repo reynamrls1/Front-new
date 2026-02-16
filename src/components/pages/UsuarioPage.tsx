@@ -19,7 +19,7 @@ export function UsuarioPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isViewMode, setIsViewMode] = useState(false);
   const [currentUsuario, setCurrentUsuario] = useState<Usuario | null>(null);
-  
+
   const [formData, setFormData] = useState<Usuario>({
     documentNumber: '',
     firstName: '',
@@ -112,15 +112,30 @@ export function UsuarioPage() {
         // ACTUALIZAR (PUT)
         console.log("Actualizando...", formData);
         const updatedUser = await userService.update(currentUsuario.id, formData);
-        
+
         setUsuarios(usuarios.map(u => u.id === currentUsuario.id ? updatedUser : u));
         alert("Usuario actualizado");
       } else {
         // CREAR (POST)
+
+        // --- VALIDACIÓN DE CONTRASEÑA ---
+        const pwd = formData.password || "";
+        if (pwd.length > 12) {
+          alert("La contraseña no puede tener más de 12 caracteres.");
+          return;
+        }
+        // Regex: Al menos una mayúscula, un número, un caracter especial (o guion bajo)
+        const passwordRegex = /^(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).*$/;
+        if (!passwordRegex.test(pwd)) {
+          alert("La contraseña debe tener al menos una mayúscula, un número y un signo (caracter especial).");
+          return;
+        }
+        // --------------------------------
+
         // Asegúrate de enviar los datos que tu Back requiere (ej. password)
         console.log("Creando...", formData);
         const newUser = await userService.create(formData);
-        
+
         setUsuarios([...usuarios, newUser]);
         alert("Usuario creado");
       }
@@ -179,45 +194,45 @@ export function UsuarioPage() {
                 </TableRow>
               ) : (
                 filteredUsuarios.map((usuario) => (
-                <TableRow key={usuario.id} className="hover:bg-blue-50/50 transition-colors">
-                  <TableCell>{usuario.id}</TableCell>
-                  <TableCell>{usuario.documentNumber}</TableCell>
-                  <TableCell>
-                    {usuario.firstName} {usuario.secondName} {usuario.lastName} {usuario.secondLastName}
-                  </TableCell>
-                  <TableCell>{usuario.phone}</TableCell>
-                  <TableCell>{usuario.username}</TableCell>
-                  <TableCell>{usuario.documentType}</TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleView(usuario)}
-                        className="hover:bg-blue-50 hover:text-blue-600"
-                      >
-                        <Eye className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleEdit(usuario)}
-                        className="hover:bg-amber-50 hover:text-amber-600"
-                      >
-                        <Edit className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => usuario.id && handleDelete(usuario.id)}
-                        className="hover:bg-red-50 hover:text-red-600"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              )))}
+                  <TableRow key={usuario.id} className="hover:bg-blue-50/50 transition-colors">
+                    <TableCell>{usuario.id}</TableCell>
+                    <TableCell>{usuario.documentNumber}</TableCell>
+                    <TableCell>
+                      {usuario.firstName} {usuario.secondName} {usuario.lastName} {usuario.secondLastName}
+                    </TableCell>
+                    <TableCell>{usuario.phone}</TableCell>
+                    <TableCell>{usuario.username}</TableCell>
+                    <TableCell>{usuario.documentType}</TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleView(usuario)}
+                          className="hover:bg-blue-50 hover:text-blue-600"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleEdit(usuario)}
+                          className="hover:bg-amber-50 hover:text-amber-600"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => usuario.id && handleDelete(usuario.id)}
+                          className="hover:bg-red-50 hover:text-red-600"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                )))}
             </TableBody>
           </Table>
         </div>
@@ -285,7 +300,7 @@ export function UsuarioPage() {
                   <Label>Fecha Nacimiento *</Label>
                   <Input type="date" value={formData.birthDate} onChange={(e) => setFormData({ ...formData, birthDate: e.target.value })} required />
                 </div>
-                
+
                 {/* CAMPOS DE CUENTA */}
                 <div>
                   <Label>Usuario (Login) *</Label>
@@ -297,10 +312,10 @@ export function UsuarioPage() {
                 </div>
                 {/* Solo mostramos password al crear, no al editar (opcional) */}
                 {!currentUsuario && (
-                    <div>
+                  <div>
                     <Label>Contraseña *</Label>
                     <Input type="password" value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} required />
-                    </div>
+                  </div>
                 )}
               </div>
 
