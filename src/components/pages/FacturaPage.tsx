@@ -12,6 +12,7 @@ import facturaService, { FacturaDTO } from '../../services/facturaService';
 import productoFacturaService, { ProductoFacturaDTO } from '../../services/productoFacturaService';
 import productoService, { ProductDTO } from '../../services/productoService';
 import { toast } from 'sonner';
+import Swal from 'sweetalert2';
 
 interface CartItem {
   productId: number;
@@ -86,13 +87,24 @@ export function FacturasPage() {
   };
 
   const handleDelete = async (id: number) => {
-    if (confirm('¿Está seguro de eliminar esta factura?')) {
+    const result = await Swal.fire({
+      title: '¿Está seguro?',
+      text: "¿Deseas eliminar esta factura?",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#3085d6',
+      cancelButtonColor: '#d33',
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'Cancelar'
+    });
+
+    if (result.isConfirmed) {
       try {
         await facturaService.delete(id);
-        toast.success("Factura eliminada");
+        Swal.fire('Eliminado', 'La factura ha sido eliminada.', 'success');
         loadData();
       } catch (error) {
-        toast.error("Error al eliminar");
+        Swal.fire('Error', 'Error al eliminar la factura', 'error');
       }
     }
   };

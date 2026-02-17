@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import Swal from 'sweetalert2';
 import { Card } from '../ui/card';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -51,9 +52,21 @@ export function OrdenPage() {
     setIsDialogOpen(true);
   };
 
-  const handleDelete = (id: string) => {
-    if (confirm('¿Está seguro de eliminar esta orden?')) {
+  const handleDelete = async (id: string) => {
+    const result = await Swal.fire({
+      title: '¿Está seguro?',
+      text: "¿Deseas eliminar esta orden?",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#3085d6',
+      cancelButtonColor: '#d33',
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'Cancelar'
+    });
+
+    if (result.isConfirmed) {
       setOrdenes(ordenes.filter(o => o.id !== id));
+      Swal.fire('Eliminado', 'La orden ha sido eliminada.', 'success');
     }
   };
 
