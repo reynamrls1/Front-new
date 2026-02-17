@@ -167,6 +167,7 @@ export function Dashboard({ onNavigateHome, userRole, onChangeRole }: DashboardP
     { key: 'productos' as PageKey, label: 'Productos', icon: Box },
 
     { key: 'orden' as PageKey, label: 'Pedido', icon: ShoppingCart },
+    { key: 'facturas' as PageKey, label: 'Facturas', icon: FileText },
     { key: 'reservacion' as PageKey, label: 'Reservación', icon: Calendar },
     { key: 'mesas' as PageKey, label: 'Mesas', icon: Utensils },
   ];

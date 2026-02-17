@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 
 // IMPORTAMOS EL SERVICIO
 import userService, { Usuario } from '../../services/userService';
+import Swal from 'sweetalert2';
 
 export function UsuarioPage() {
   // 1. ESTADO INICIAL VACÍO (Datos reales)
@@ -73,14 +74,30 @@ export function UsuarioPage() {
 
   // 3. ELIMINAR REAL
   const handleDelete = async (id: number) => {
-    if (confirm('¿Está seguro de eliminar este usuario?')) {
+    const result = await Swal.fire({
+      title: '¿Está seguro?',
+      text: "¡No podrá revertir esto!",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#3085d6',
+      cancelButtonColor: '#d33',
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'Cancelar'
+    });
+
+    if (result.isConfirmed) {
       try {
         await userService.delete(id);
         // Actualizar tabla localmente
         setUsuarios(usuarios.filter(u => u.id !== id));
+        Swal.fire(
+          'Eliminado',
+          'El usuario ha sido eliminado.',
+          'success'
+        );
       } catch (error) {
         console.error(error);
-        alert("Error al eliminar usuario");
+        Swal.fire('Error', 'Error al eliminar usuario', 'error');
       }
     }
   };
@@ -114,20 +131,20 @@ export function UsuarioPage() {
         const updatedUser = await userService.update(currentUsuario.id, formData);
 
         setUsuarios(usuarios.map(u => u.id === currentUsuario.id ? updatedUser : u));
-        alert("Usuario actualizado");
+        Swal.fire('¡Éxito!', 'Usuario actualizado', 'success');
       } else {
         // CREAR (POST)
 
         // --- VALIDACIÓN DE CONTRASEÑA ---
         const pwd = formData.password || "";
         if (pwd.length > 12) {
-          alert("La contraseña no puede tener más de 12 caracteres.");
+          Swal.fire('Validación', 'La contraseña no puede tener más de 12 caracteres.', 'warning');
           return;
         }
         // Regex: Al menos una mayúscula, un número, un caracter especial (o guion bajo)
         const passwordRegex = /^(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).*$/;
         if (!passwordRegex.test(pwd)) {
-          alert("La contraseña debe tener al menos una mayúscula, un número y un signo (caracter especial).");
+          Swal.fire('Validación', 'La contraseña debe tener al menos una mayúscula, un número y un signo (caracter especial).', 'warning');
           return;
         }
         // --------------------------------
@@ -137,12 +154,12 @@ export function UsuarioPage() {
         const newUser = await userService.create(formData);
 
         setUsuarios([...usuarios, newUser]);
-        alert("Usuario creado");
+        Swal.fire('¡Éxito!', 'Usuario creado', 'success');
       }
       setIsDialogOpen(false);
     } catch (error) {
       console.error("Error al guardar:", error);
-      alert("Error al guardar. Revisa que todos los campos obligatorios estén llenos.");
+      Swal.fire('Error', 'Error al guardar. Revisa que todos los campos obligatorios estén llenos.', 'error');
     }
   };
 

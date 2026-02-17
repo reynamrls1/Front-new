@@ -4,6 +4,7 @@ import { Input } from '../ui/input';
 import { Search, Users, Trash2, ShieldCheck, UserCog } from 'lucide-react';
 import { Button } from '../ui/button';
 import api from '../../services/api';
+import Swal from 'sweetalert2';
 
 interface EmpleadoRestaurante {
     userId: number;
@@ -79,13 +80,27 @@ export function EmpleadosPage() {
 
     const handleRemover = async (userId: number) => {
         if (!restauranteId) return;
-        if (!confirm('¿Seguro que deseas remover este empleado del restaurante?')) return;
-        try {
-            await api.delete(`/api/user-restaurantes/${userId}/${restauranteId}`);
-            setEmpleados(empleados.filter(e => e.userId !== userId));
-        } catch (error) {
-            console.error('Error removiendo empleado', error);
-            alert('Error al remover empleado');
+
+        const result = await Swal.fire({
+            title: '¿Está seguro?',
+            text: "¿Seguro que deseas remover este empleado del restaurante?",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Sí, remover',
+            cancelButtonText: 'Cancelar'
+        });
+
+        if (result.isConfirmed) {
+            try {
+                await api.delete(`/api/user-restaurantes/${userId}/${restauranteId}`);
+                setEmpleados(empleados.filter(e => e.userId !== userId));
+                Swal.fire('¡Removido!', 'El empleado ha sido removido.', 'success');
+            } catch (error) {
+                console.error('Error removiendo empleado', error);
+                Swal.fire('Error', 'Error al remover empleado', 'error');
+            }
         }
     };
 
@@ -158,8 +173,8 @@ export function EmpleadosPage() {
                                         <TableCell className="text-slate-600">{emp.email}</TableCell>
                                         <TableCell>
                                             <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${emp.esAdministrador
-                                                    ? 'bg-amber-100 text-amber-800'
-                                                    : 'bg-blue-100 text-blue-800'
+                                                ? 'bg-amber-100 text-amber-800'
+                                                : 'bg-blue-100 text-blue-800'
                                                 }`}>
                                                 {emp.esAdministrador ? (
                                                     <><ShieldCheck className="w-3 h-3" /> Admin</>

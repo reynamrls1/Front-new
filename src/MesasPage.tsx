@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { Plus, Eye, Edit, Trash2, Users, Utensils } from 'lucide-react';
+import Swal from 'sweetalert2';
 
 // 1. Types
 interface Mesa {
@@ -73,7 +74,7 @@ const Badge: React.FC<React.HTMLAttributes<HTMLSpanElement>> = ({ className = ''
 // 7. Dialog Components (Modal simplificado)
 const Dialog: React.FC<{ open: boolean, onOpenChange: (open: boolean) => void, children: React.ReactNode }> = ({ open, onOpenChange, children }) => {
   if (!open) return null;
-  
+
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
       <div className="fixed inset-0 bg-black/50 transition-opacity" onClick={() => onOpenChange(false)} />
@@ -88,11 +89,11 @@ const DialogContent: React.FC<React.HTMLAttributes<HTMLDivElement>> = ({ classNa
     {...props}
   >
     {children}
-    <button 
-      onClick={(e) => { e.stopPropagation(); (e.currentTarget.closest('.fixed.inset-0.z-50') as HTMLDivElement)?.click(); }} 
+    <button
+      onClick={(e) => { e.stopPropagation(); (e.currentTarget.closest('.fixed.inset-0.z-50') as HTMLDivElement)?.click(); }}
       className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-white transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2 disabled:pointer-events-none"
     >
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 text-slate-500"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 text-slate-500"><path d="M18 6L6 18M6 6l12 12" /></svg>
     </button>
   </div>
 );
@@ -108,14 +109,14 @@ const DialogTitle: React.FC<React.HTMLAttributes<HTMLHeadingElement>> = ({ class
 // 8. Select Components (Funcionalidad simplificada para un solo archivo)
 
 interface SelectOption {
-    value: string;
-    label: React.ReactNode;
+  value: string;
+  label: React.ReactNode;
 }
 
-const SelectContext = React.createContext<{ 
-    value: string; 
-    onValueChange: (value: string) => void; 
-    options: SelectOption[];
+const SelectContext = React.createContext<{
+  value: string;
+  onValueChange: (value: string) => void;
+  options: SelectOption[];
 } | undefined>(undefined);
 
 const useSelectContext = () => {
@@ -256,12 +257,12 @@ export default function MesasPage() {
   const [currentMesa, setCurrentMesa] = useState<Mesa | null>(null);
 
   interface MesaFormData {
-  numero: string;
-  capacidad: string;
-  estado: string;
-  zona: string;
-}
-  
+    numero: string;
+    capacidad: string;
+    estado: string;
+    zona: string;
+  }
+
   const [formData, setFormData] = useState<MesaFormData>({
     numero: "",
     capacidad: "",
@@ -311,7 +312,7 @@ export default function MesasPage() {
   // 🟢 Guardar mesa nueva o editada
   const handleSave = () => {
     if (!formData.numero.trim() || !formData.capacidad.trim()) {
-      alert("Todos los campos son obligatorios");
+      Swal.fire('Validación', 'Todos los campos son obligatorios', 'warning');
       return;
     }
 
@@ -335,9 +336,21 @@ export default function MesasPage() {
   };
 
   // 🟢 Borrar mesa
-  const handleDelete = (id: number) => {
-    if (confirm("¿Deseas eliminar esta mesa?")) {
+  const handleDelete = async (id: number) => {
+    const result = await Swal.fire({
+      title: '¿Está seguro?',
+      text: "¿Deseas eliminar esta mesa?",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#3085d6',
+      cancelButtonColor: '#d33',
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'Cancelar'
+    });
+
+    if (result.isConfirmed) {
       setMesas(mesas.filter(m => m.id !== id));
+      Swal.fire('Eliminado', 'La mesa ha sido eliminada.', 'success');
     }
   };
 
@@ -373,8 +386,8 @@ export default function MesasPage() {
                 <strong>Estado:</strong>
                 <Badge className={
                   mesa.estado === "Disponible" ? "bg-green-600" :
-                  mesa.estado === "Ocupada" ? "bg-red-600" :
-                  "bg-yellow-600"}>
+                    mesa.estado === "Ocupada" ? "bg-red-600" :
+                      "bg-yellow-600"}>
                   {mesa.estado}
                 </Badge>
               </p>
@@ -403,8 +416,8 @@ export default function MesasPage() {
               {isViewMode
                 ? "Detalles de Mesa"
                 : currentMesa
-                ? "Editar Mesa"
-                : "Nueva Mesa"}
+                  ? "Editar Mesa"
+                  : "Nueva Mesa"}
             </DialogTitle>
           </DialogHeader>
 

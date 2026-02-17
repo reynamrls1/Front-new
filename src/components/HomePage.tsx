@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import api from '../services/api';
+import Swal from 'sweetalert2';
 import { Button } from './ui/button'; // Asegúrate de que estas rutas sean correctas
 import { Card } from './ui/card';
 import { Input } from './ui/input';
@@ -185,7 +186,7 @@ export function HomePage({ onLogin }: { onLogin?: (role: any) => void }) {
       console.log("Enviando registro...", datosUsuario);
       await authService.register(datosUsuario);
 
-      alert("¡Registro exitoso! Ahora inicia sesión.");
+      Swal.fire('¡Registro exitoso!', 'Ahora inicia sesión.', 'success');
 
       // Cerramos registro y abrimos login para que entre
       setIsRegisterOpen(false);
