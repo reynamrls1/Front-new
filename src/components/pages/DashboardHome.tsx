@@ -2,25 +2,32 @@ import { useState, useEffect } from 'react';
 import { Card } from '../ui/card';
 import { ImageWithFallback } from '../figma/ImageneWithFallback';
 import { 
-  TrendingUp, 
   DollarSign, 
   Package, 
   ShoppingCart,
-  Users,
   Calendar,
   ArrowUpRight,
-  ArrowDownRight
+  ArrowDownRight,
+  FileText,
+  Sparkles,
+  Box
 } from 'lucide-react';
+import { Button } from '../ui/button';
 import facturaService, { FacturaDTO } from '../../services/facturaService';
 import productoService from '../../services/productoService';
-import reservationService from '../../services/reservationService';
+import reservationService, { ReservationDTO } from '../../services/reservationService';
 
-export function DashboardHome() {
+interface DashboardHomeProps {
+  onNavigate?: (page: string) => void;
+}
+
+export function DashboardHome({ onNavigate }: DashboardHomeProps) {
   const [ingresosMes, setIngresosMes] = useState(0);
   const [productosCount, setProductosCount] = useState(0);
   const [ordenesHoy, setOrdenesHoy] = useState(0);
   const [reservacionesCount, setReservacionesCount] = useState(0);
   const [restauranteId, setRestauranteId] = useState<number | null>(null);
+  const [recentActivity, setRecentActivity] = useState<{ action: string; time: string; type: string }[]>([]);
 
   useEffect(() => {
     const str = localStorage.getItem('restaurante');
@@ -41,6 +48,21 @@ export function DashboardHome() {
     }
   }, [restauranteId]);
 
+  const getRelativeTime = (dateStr: string): string => {
+    const now = new Date();
+    const date = new Date(dateStr);
+    const diffMs = now.getTime() - date.getTime();
+    const diffMin = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMin < 1) return 'Justo ahora';
+    if (diffMin < 60) return `Hace ${diffMin} minuto${diffMin !== 1 ? 's' : ''}`;
+    if (diffHours < 24) return `Hace ${diffHours} hora${diffHours !== 1 ? 's' : ''}`;
+    if (diffDays < 30) return `Hace ${diffDays} día${diffDays !== 1 ? 's' : ''}`;
+    return date.toLocaleDateString('es-CO');
+  };
+
   const loadData = async () => {
     try {
       const [facturas, productos, reservaciones] = await Promise.all([
@@ -53,27 +75,16 @@ export function DashboardHome() {
       setReservacionesCount(reservaciones.length);
 
       // Calculos de hoy / mes actual
-      const dateStrHoy = new Date().toLocaleDateString('es-CO'); 
-      const monthPrefix = new Date().toISOString().slice(0, 7); // 'YYYY-MM'
-
-      const formatDate = (dateStr?: string) => {
-        if (!dateStr) return '-';
-        try {
-          return new Date(dateStr).toLocaleDateString('es-CO');
-        } catch {
-          return dateStr;
-        }
-      };
+      const todayISO = new Date().toISOString().slice(0, 10);
+      const monthPrefix = new Date().toISOString().slice(0, 7);
 
       let hoyOrdenesCount = 0;
       let mesTotal = 0;
 
       facturas.forEach((f: FacturaDTO) => {
-        // Ordenes Hoy
-        if (formatDate(f.date) === dateStrHoy) {
+        if (f.date && f.date.startsWith(todayISO)) {
           hoyOrdenesCount++;
         }
-        // Ingresos del Mes (facturas cuyo date comience con YYYY-MM)
         if (f.date && f.date.startsWith(monthPrefix)) {
           mesTotal += (f.total || 0);
         }
@@ -81,6 +92,42 @@ export function DashboardHome() {
 
       setOrdenesHoy(hoyOrdenesCount);
       setIngresosMes(mesTotal);
+
+      // Construir actividad reciente real
+      const activities: { action: string; time: string; date: Date; type: string }[] = [];
+
+      // Agregar facturas como actividad
+      facturas.forEach((f: FacturaDTO) => {
+        if (f.date) {
+          activities.push({
+            action: `Factura #${f.id} generada — $${f.total?.toLocaleString() || 0}`,
+            time: getRelativeTime(f.date),
+            date: new Date(f.date),
+            type: 'invoice'
+          });
+        }
+      });
+
+      // Agregar reservaciones como actividad
+      reservaciones.forEach((r: ReservationDTO) => {
+        const dateStr = r.aplicationDate || r.reservationDate;
+        if (dateStr) {
+          const condLabel = r.condition === 'CONFIRMED' ? 'confirmada' 
+            : r.condition === 'CANCELLED' ? 'cancelada' 
+            : 'pendiente';
+          activities.push({
+            action: `Reservación #${r.id} ${condLabel}`,
+            time: getRelativeTime(dateStr),
+            date: new Date(dateStr),
+            type: 'reservation'
+          });
+        }
+      });
+
+      // Ordenar por fecha más reciente y tomar las últimas 6
+      activities.sort((a, b) => b.date.getTime() - a.date.getTime());
+      setRecentActivity(activities.slice(0, 6).map(({ action, time, type }) => ({ action, time, type })));
+
     } catch (e) {
       console.error("Error cargando dashboard estats", e);
     }
@@ -90,7 +137,7 @@ export function DashboardHome() {
     {
       title: 'Ingresos del Mes',
       value: `$${ingresosMes.toLocaleString()}`,
-      change: '+12.5%', // Opcional: Calcular este delta si hay data historica
+      change: '+12.5%',
       icon: DollarSign,
       gradient: 'from-blue-500 to-cyan-500',
       isPositive: true,
@@ -104,7 +151,7 @@ export function DashboardHome() {
       isPositive: true,
     },
     {
-      title: 'Órdenes Hoy',
+      title: 'Facturas Hoy',
       value: ordenesHoy.toString(),
       change: '+23.1%',
       icon: ShoppingCart,
@@ -121,11 +168,39 @@ export function DashboardHome() {
     },
   ];
 
-  const recentActivity = [
-    { action: 'Nueva orden #1234', time: 'Hace 5 minutos', type: 'order' },
-    { action: 'Reservación confirmada', time: 'Hace 15 minutos', type: 'reservation' },
-    { action: 'Producto agregado', time: 'Hace 1 hora', type: 'product' },
-    { action: 'Factura generada #567', time: 'Hace 2 horas', type: 'invoice' },
+  const quickActions = [
+    {
+      label: 'Productos',
+      icon: Package,
+      page: 'productos',
+      gradient: 'from-blue-600 to-indigo-600',
+      bg: 'from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100',
+      shadow: 'shadow-blue-500/30',
+    },
+    {
+      label: 'Nueva Reservación',
+      icon: Calendar,
+      page: 'reservacion',
+      gradient: 'from-emerald-600 to-teal-600',
+      bg: 'from-emerald-50 to-teal-50 hover:from-emerald-100 hover:to-teal-100',
+      shadow: 'shadow-emerald-500/30',
+    },
+    {
+      label: 'Facturas',
+      icon: FileText,
+      page: 'facturas',
+      gradient: 'from-purple-600 to-pink-600',
+      bg: 'from-purple-50 to-pink-50 hover:from-purple-100 hover:to-pink-100',
+      shadow: 'shadow-purple-500/30',
+    },
+    {
+      label: 'Insumos',
+      icon: Box,
+      page: 'insumos',
+      gradient: 'from-orange-600 to-red-600',
+      bg: 'from-orange-50 to-red-50 hover:from-orange-100 hover:to-red-100',
+      shadow: 'shadow-orange-500/30',
+    },
   ];
 
   return (
@@ -168,52 +243,48 @@ export function DashboardHome() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Recent Activity */}
+        {/* Recent Activity — datos reales */}
         <Card className="p-8 border-0 bg-white shadow-lg hover:shadow-xl transition-shadow">
           <h3 className="text-gray-900 mb-6">Actividad Reciente</h3>
           <div className="space-y-5">
-            {recentActivity.map((activity, index) => (
-              <div key={index} className="group flex items-start gap-4 pb-5 border-b border-gray-100 last:border-0 hover:bg-blue-50/50 -mx-4 px-4 py-3 rounded-xl transition-all">
-                <div className="mt-1">
-                  <div className="w-2.5 h-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full group-hover:scale-125 transition-transform shadow-lg shadow-blue-500/30"></div>
+            {recentActivity.length === 0 ? (
+              <p className="text-sm text-gray-400 text-center py-4">No hay actividad reciente</p>
+            ) : (
+              recentActivity.map((activity, index) => (
+                <div key={index} className="group flex items-start gap-4 pb-5 border-b border-gray-100 last:border-0 hover:bg-blue-50/50 -mx-4 px-4 py-3 rounded-xl transition-all">
+                  <div className="mt-1">
+                    <div className={`w-2.5 h-2.5 rounded-full group-hover:scale-125 transition-transform shadow-lg ${
+                      activity.type === 'invoice' 
+                        ? 'bg-gradient-to-r from-green-500 to-emerald-500 shadow-green-500/30' 
+                        : 'bg-gradient-to-r from-blue-600 to-indigo-600 shadow-blue-500/30'
+                    }`}></div>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-gray-900 group-hover:text-blue-600 transition-colors">{activity.action}</p>
+                    <p className="text-xs text-gray-500 mt-1">{activity.time}</p>
+                  </div>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm text-gray-900 group-hover:text-blue-600 transition-colors">{activity.action}</p>
-                  <p className="text-xs text-gray-500 mt-1">{activity.time}</p>
-                </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </Card>
 
-        {/* Quick Actions */}
+        {/* Quick Actions — con navegación real */}
         <Card className="p-8 border-0 bg-white shadow-lg hover:shadow-xl transition-shadow">
           <h3 className="text-gray-900 mb-6">Acciones Rápidas</h3>
           <div className="grid grid-cols-2 gap-4">
-            <button className="group p-5 bg-gradient-to-br from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 rounded-2xl text-left transition-all hover:scale-105 hover:shadow-lg">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform shadow-lg shadow-blue-500/30">
-                <Package className="w-5 h-5 text-white" />
-              </div>
-              <p className="text-sm text-gray-900">Agregar Producto</p>
-            </button>
-            <button className="group p-5 bg-gradient-to-br from-purple-50 to-pink-50 hover:from-purple-100 hover:to-pink-100 rounded-2xl text-left transition-all hover:scale-105 hover:shadow-lg">
-              <div className="w-10 h-10 bg-gradient-to-br from-purple-600 to-pink-600 rounded-xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform shadow-lg shadow-purple-500/30">
-                <ShoppingCart className="w-5 h-5 text-white" />
-              </div>
-              <p className="text-sm text-gray-900">Nueva Orden</p>
-            </button>
-            <button className="group p-5 bg-gradient-to-br from-emerald-50 to-teal-50 hover:from-emerald-100 hover:to-teal-100 rounded-2xl text-left transition-all hover:scale-105 hover:shadow-lg">
-              <div className="w-10 h-10 bg-gradient-to-br from-emerald-600 to-teal-600 rounded-xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform shadow-lg shadow-emerald-500/30">
-                <Calendar className="w-5 h-5 text-white" />
-              </div>
-              <p className="text-sm text-gray-900">Nueva Reservación</p>
-            </button>
-            <button className="group p-5 bg-gradient-to-br from-orange-50 to-red-50 hover:from-orange-100 hover:to-red-100 rounded-2xl text-left transition-all hover:scale-105 hover:shadow-lg">
-              <div className="w-10 h-10 bg-gradient-to-br from-orange-600 to-red-600 rounded-xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform shadow-lg shadow-orange-500/30">
-                <TrendingUp className="w-5 h-5 text-white" />
-              </div>
-              <p className="text-sm text-gray-900">Ver Reportes</p>
-            </button>
+            {quickActions.map((action) => (
+              <button
+                key={action.page}
+                onClick={() => onNavigate?.(action.page)}
+                className={`group p-5 bg-gradient-to-br ${action.bg} rounded-2xl text-left transition-all hover:scale-105 hover:shadow-lg`}
+              >
+                <div className={`w-10 h-10 bg-gradient-to-br ${action.gradient} rounded-xl flex items-center justify-center mb-3 group-hover:scale-110 transition-transform shadow-lg ${action.shadow}`}>
+                  <action.icon className="w-5 h-5 text-white" />
+                </div>
+                <p className="text-sm text-gray-900">{action.label}</p>
+              </button>
+            ))}
           </div>
         </Card>
       </div>
@@ -250,6 +321,3 @@ export function DashboardHome() {
     </div>
   );
 }
-
-import { Sparkles } from 'lucide-react';
-import { Button } from '../ui/button';
