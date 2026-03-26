@@ -100,12 +100,13 @@ export function LoginPage({ onLogin }: any) {
           </Button>
 
           <div className="text-center mt-4">
-            <a
-              href="/forgot-password"
+            <button
+              type="button"
+              onClick={() => navigate('/forgot-password')}
               className="text-sm text-blue-600 hover:text-blue-800 hover:underline"
             >
               ¿Olvidaste tu contraseña?
-            </a>
+            </button>
           </div>
         </form>
       </Card>
