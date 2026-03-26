@@ -41,8 +41,8 @@ import { Footer } from './Footer';
 
 // Importar las páginas de contenido
 import { FacturasPage } from './pages/FacturaPage';
-import { IngresosInsumosPage } from './pages/IngresoInsumosPage';
-import { IngresosPage } from './pages/IngresosPage';
+
+
 import { ProductosPage } from './pages/ProductosPage';
 import { InsumosProductosPage } from './pages/InsumosProductosPage';
 
@@ -72,8 +72,8 @@ type PageKey =
   | 'empleados'
   | 'solicitudes'
   | 'facturas'
-  | 'ingresos-insumos'
-  | 'ingresos'
+
+
   | 'insumos'
   | 'productos'
   | 'insumos-productos'
@@ -138,8 +138,8 @@ export function Dashboard({ onNavigateHome, userRole, onChangeRole }: DashboardP
     { key: 'solicitudes' as PageKey, label: 'Solicitudes', icon: CircleDot },
     { key: 'empleados' as PageKey, label: 'Empleados', icon: Users },
     // Eliminado: Document Type
-    { key: 'ingresos' as PageKey, label: 'Ingresos', icon: DollarSign },
-    { key: 'ingresos-insumos' as PageKey, label: 'Ingreso/Insumo', icon: TrendingUp },
+
+
     { key: 'insumos' as PageKey, label: 'Insumos', icon: Package },
 
     { key: 'insumos-productos' as PageKey, label: 'Recetas', icon: Link2 }, // Renamed to clarify
@@ -192,10 +192,8 @@ export function Dashboard({ onNavigateHome, userRole, onChangeRole }: DashboardP
         return <SolicitudesPage />;
       case 'facturas':
         return <FacturasPage />;
-      case 'ingresos-insumos':
-        return <IngresosInsumosPage />;
-      case 'ingresos':
-        return <IngresosPage />;
+
+
       case 'insumos':
         return <InsumosPage />;
       case 'productos':

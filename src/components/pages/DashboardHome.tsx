@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { Card } from '../ui/card';
 import { ImageWithFallback } from '../figma/ImageneWithFallback';
 import { 
@@ -10,20 +11,93 @@ import {
   ArrowUpRight,
   ArrowDownRight
 } from 'lucide-react';
+import facturaService, { FacturaDTO } from '../../services/facturaService';
+import productoService from '../../services/productoService';
+import reservationService from '../../services/reservationService';
 
 export function DashboardHome() {
+  const [ingresosMes, setIngresosMes] = useState(0);
+  const [productosCount, setProductosCount] = useState(0);
+  const [ordenesHoy, setOrdenesHoy] = useState(0);
+  const [reservacionesCount, setReservacionesCount] = useState(0);
+  const [restauranteId, setRestauranteId] = useState<number | null>(null);
+
+  useEffect(() => {
+    const str = localStorage.getItem('restaurante');
+    if (str) {
+      try {
+        const parsed = JSON.parse(str);
+        const id = parsed.restauranteId || parsed.id;
+        setRestauranteId(Number(id));
+      } catch (e) {
+        console.error("Error parsing restaurante from localStorage", e);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    if (restauranteId) {
+      loadData();
+    }
+  }, [restauranteId]);
+
+  const loadData = async () => {
+    try {
+      const [facturas, productos, reservaciones] = await Promise.all([
+        facturaService.getAll(restauranteId!),
+        productoService.getAll(restauranteId!),
+        reservationService.getReservationsByRestaurante(restauranteId!)
+      ]);
+
+      setProductosCount(productos.length);
+      setReservacionesCount(reservaciones.length);
+
+      // Calculos de hoy / mes actual
+      const dateStrHoy = new Date().toLocaleDateString('es-CO'); 
+      const monthPrefix = new Date().toISOString().slice(0, 7); // 'YYYY-MM'
+
+      const formatDate = (dateStr?: string) => {
+        if (!dateStr) return '-';
+        try {
+          return new Date(dateStr).toLocaleDateString('es-CO');
+        } catch {
+          return dateStr;
+        }
+      };
+
+      let hoyOrdenesCount = 0;
+      let mesTotal = 0;
+
+      facturas.forEach((f: FacturaDTO) => {
+        // Ordenes Hoy
+        if (formatDate(f.date) === dateStrHoy) {
+          hoyOrdenesCount++;
+        }
+        // Ingresos del Mes (facturas cuyo date comience con YYYY-MM)
+        if (f.date && f.date.startsWith(monthPrefix)) {
+          mesTotal += (f.total || 0);
+        }
+      });
+
+      setOrdenesHoy(hoyOrdenesCount);
+      setIngresosMes(mesTotal);
+    } catch (e) {
+      console.error("Error cargando dashboard estats", e);
+    }
+  };
+
   const stats = [
     {
       title: 'Ingresos del Mes',
-      value: '$125,430',
-      change: '+12.5%',
+      value: `$${ingresosMes.toLocaleString()}`,
+      change: '+12.5%', // Opcional: Calcular este delta si hay data historica
       icon: DollarSign,
       gradient: 'from-blue-500 to-cyan-500',
       isPositive: true,
     },
     {
       title: 'Productos',
-      value: '1,254',
+      value: productosCount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ","),
       change: '+8.2%',
       icon: Package,
       gradient: 'from-emerald-500 to-teal-500',
@@ -31,7 +105,7 @@ export function DashboardHome() {
     },
     {
       title: 'Órdenes Hoy',
-      value: '48',
+      value: ordenesHoy.toString(),
       change: '+23.1%',
       icon: ShoppingCart,
       gradient: 'from-purple-500 to-pink-500',
@@ -39,7 +113,7 @@ export function DashboardHome() {
     },
     {
       title: 'Reservaciones',
-      value: '32',
+      value: reservacionesCount.toString(),
       change: '+5.4%',
       icon: Calendar,
       gradient: 'from-orange-500 to-red-500',
