@@ -6,7 +6,7 @@ import { Label } from '../ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 import { Badge } from '../ui/badge';
-import { Plus, Eye, Trash2, ShoppingCart, X } from 'lucide-react';
+import { Plus, Eye, Trash2, ShoppingCart, X, DollarSign, FileText } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import facturaService, { FacturaDTO } from '../../services/facturaService';
 import productoFacturaService, { ProductoFacturaDTO } from '../../services/productoFacturaService';
@@ -207,6 +207,23 @@ export function FacturasPage() {
 
   if (loading) return <div className="p-8">Cargando facturas...</div>;
 
+  // Calculo de estadísticas - usando comparación de strings para evitar problemas de timezone
+  const todayISO = new Date().toISOString().slice(0, 10); // 'YYYY-MM-DD'
+  const monthPrefix = new Date().toISOString().slice(0, 7); // 'YYYY-MM'
+
+  // Facturas de hoy (comparación por string del date ISO)
+  const facturasHoy = facturas.filter(f => f.date && f.date.startsWith(todayISO));
+  const totalHoy = facturasHoy.reduce((acc, f) => acc + (f.total || 0), 0);
+  const numFacturasHoy = facturasHoy.length;
+
+  // Facturas del mes
+  const facturasMes = facturas.filter(f => f.date && f.date.startsWith(monthPrefix));
+  const totalMes = facturasMes.reduce((acc, f) => acc + (f.total || 0), 0);
+  const numFacturasMes = facturasMes.length;
+
+  // Total general (todas las facturas)
+  const totalGeneral = facturas.reduce((acc, f) => acc + (f.total || 0), 0);
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -218,6 +235,64 @@ export function FacturasPage() {
           <Plus className="w-4 h-4 mr-2" />
           Nueva Factura
         </Button>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card className="p-5 bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-100 shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex items-center gap-4">
+            <div className="bg-gradient-to-br from-blue-500 to-blue-600 p-3 rounded-2xl shadow-lg shadow-blue-500/30">
+              <DollarSign className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <p className="text-xs text-gray-600 font-medium">Ingresos del Mes</p>
+              <p className="text-2xl font-bold text-gray-900 tracking-tight">
+                ${totalMes.toLocaleString()}
+              </p>
+            </div>
+          </div>
+        </Card>
+
+        <Card className="p-5 bg-gradient-to-br from-green-50 to-emerald-50 border-green-100 shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex items-center gap-4">
+            <div className="bg-gradient-to-br from-green-500 to-emerald-600 p-3 rounded-2xl shadow-lg shadow-green-500/30">
+              <DollarSign className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <p className="text-xs text-gray-600 font-medium">Ingresos Hoy</p>
+              <p className="text-2xl font-bold text-gray-900 tracking-tight">
+                ${totalHoy.toLocaleString()}
+              </p>
+            </div>
+          </div>
+        </Card>
+
+        <Card className="p-5 bg-gradient-to-br from-purple-50 to-pink-50 border-purple-100 shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex items-center gap-4">
+            <div className="bg-gradient-to-br from-purple-500 to-purple-600 p-3 rounded-2xl shadow-lg shadow-purple-500/30">
+              <FileText className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <p className="text-xs text-gray-600 font-medium">Facturas del Mes</p>
+              <p className="text-2xl font-bold text-gray-900 tracking-tight">
+                {numFacturasMes}
+              </p>
+            </div>
+          </div>
+        </Card>
+
+        <Card className="p-5 bg-gradient-to-br from-orange-50 to-amber-50 border-orange-100 shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex items-center gap-4">
+            <div className="bg-gradient-to-br from-orange-500 to-amber-600 p-3 rounded-2xl shadow-lg shadow-orange-500/30">
+              <FileText className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <p className="text-xs text-gray-600 font-medium">Total Facturas</p>
+              <p className="text-2xl font-bold text-gray-900 tracking-tight">
+                {facturas.length}
+              </p>
+            </div>
+          </div>
+        </Card>
       </div>
 
       <Card className="overflow-hidden">

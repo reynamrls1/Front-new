@@ -186,11 +186,14 @@ export function HomePage({ onLogin }: { onLogin?: (role: any) => void }) {
       console.log("Enviando registro...", datosUsuario);
       await authService.register(datosUsuario);
 
-      Swal.fire('¡Registro exitoso!', 'Ahora inicia sesión.', 'success');
-
-      // Cerramos registro y abrimos login para que entre
+      // Cerramos registro
       setIsRegisterOpen(false);
       setRegisterStep('role');
+
+      // Esperamos a que el usuario cierre el SweetAlert antes de abrir login
+      await Swal.fire('¡Registro exitoso!', 'Ahora inicia sesión.', 'success');
+
+      // Después de confirmar, abrimos login con el email pre-llenado
       setEmail(regEmail);
       setIsLoginOpen(true);
 
@@ -298,12 +301,13 @@ export function HomePage({ onLogin }: { onLogin?: (role: any) => void }) {
             </Button>
 
             <div className="text-center mt-2">
-              <a
-                href="/forgot-password"
+              <button
+                type="button"
+                onClick={() => { setIsLoginOpen(false); navigate('/forgot-password'); }}
                 className="text-xs text-blue-600 hover:text-blue-800 hover:underline"
               >
                 ¿Olvidaste tu contraseña?
-              </a>
+              </button>
             </div>
           </form>
 

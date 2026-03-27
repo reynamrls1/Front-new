@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Button } from './ui/button';
 import { ScrollArea } from './ui/scroll-area';
 import authService from '../services/authService';
+import api from '../services/api';
 import {
   Home,
   FolderTree,
@@ -15,6 +16,7 @@ import {
   Ruler,
   Utensils,
   ShoppingCart,
+  AlertTriangle,
   ClipboardList,
   Receipt,
   Calendar,
@@ -41,13 +43,13 @@ import { Footer } from './Footer';
 
 // Importar las páginas de contenido
 import { FacturasPage } from './pages/FacturaPage';
-import { IngresosInsumosPage } from './pages/IngresoInsumosPage';
-import { IngresosPage } from './pages/IngresosPage';
+
+
 import { ProductosPage } from './pages/ProductosPage';
 import { InsumosProductosPage } from './pages/InsumosProductosPage';
 
 import { MesasPage } from './pages/MesasPage';
-import { OrdenPage } from './pages/OrdenPage';
+
 
 import { ReservacionPage } from './pages/ReservacionPage';
 import { DashboardHome } from './pages/DashboardHome';
@@ -72,14 +74,13 @@ type PageKey =
   | 'empleados'
   | 'solicitudes'
   | 'facturas'
-  | 'ingresos-insumos'
-  | 'ingresos'
+
+
   | 'insumos'
   | 'productos'
   | 'insumos-productos'
 
   | 'mesas'
-  | 'orden'
 
   | 'reservacion';
 
@@ -91,6 +92,7 @@ export function Dashboard({ onNavigateHome, userRole, onChangeRole }: DashboardP
   const [personName, setPersonName] = useState('');
   const [personEmail, setPersonEmail] = useState('');
   const [personPhone, setPersonPhone] = useState('');
+  const [employeeApproved, setEmployeeApproved] = useState<boolean | null>(null); // null = loading
 
   useEffect(() => {
 
@@ -130,7 +132,44 @@ export function Dashboard({ onNavigateHome, userRole, onChangeRole }: DashboardP
       }
     };
     fetchUserData();
-  }, []);
+
+    // Para empleados: verificar si tienen solicitud aprobada
+    if (userRole === 'employee') {
+      const checkEmployeeApproval = async () => {
+        try {
+          const storedUserId = localStorage.getItem('user_id');
+          if (!storedUserId) {
+            setEmployeeApproved(false);
+            return;
+          }
+          const response = await api.get(`/api/solicitudes/usuario/${storedUserId}`);
+          const solicitudes = response.data;
+          const approvedSolicitud = solicitudes.find((s: any) => s.estado === 'APROBADA');
+          const hasApproved = !!approvedSolicitud;
+          setEmployeeApproved(hasApproved);
+
+          if (hasApproved) {
+            // Restaurar datos del restaurante en localStorage desde la solicitud aprobada
+            const restId = approvedSolicitud.restauranteId;
+            const restName = approvedSolicitud.nombreRestaurante;
+            const restData = { restauranteId: restId, id: restId, nombre: restName };
+            localStorage.setItem('restaurante', JSON.stringify(restData));
+            localStorage.setItem('user_restaurantes', JSON.stringify([restData]));
+          } else {
+            // Si no está aprobado, limpiar localStorage del restaurante para que no cargue datos
+            localStorage.removeItem('restaurante');
+            localStorage.removeItem('user_restaurantes');
+          }
+        } catch (error) {
+          console.error('Error verificando aprobación de empleado', error);
+          setEmployeeApproved(false);
+        }
+      };
+      checkEmployeeApproval();
+    } else {
+      setEmployeeApproved(true); // Admin y cliente no requieren verificación
+    }
+  }, [userRole]);
 
   // Definir menús para cada rol
   const adminMenuItems = [
@@ -138,16 +177,15 @@ export function Dashboard({ onNavigateHome, userRole, onChangeRole }: DashboardP
     { key: 'solicitudes' as PageKey, label: 'Solicitudes', icon: CircleDot },
     { key: 'empleados' as PageKey, label: 'Empleados', icon: Users },
     // Eliminado: Document Type
-    { key: 'ingresos' as PageKey, label: 'Ingresos', icon: DollarSign },
-    { key: 'ingresos-insumos' as PageKey, label: 'Ingreso/Insumo', icon: TrendingUp },
+
+
     { key: 'insumos' as PageKey, label: 'Insumos', icon: Package },
 
     { key: 'insumos-productos' as PageKey, label: 'Recetas', icon: Link2 }, // Renamed to clarify
     { key: 'productos' as PageKey, label: 'Productos', icon: Box },
     // Eliminado: Producto Factura
     { key: 'facturas' as PageKey, label: 'Facturas', icon: FileText },
-    // Eliminado: Pedido/Producto
-    { key: 'orden' as PageKey, label: 'Pedido', icon: ShoppingCart },
+
     { key: 'reservacion' as PageKey, label: 'Reservación', icon: Calendar },
     { key: 'mesas' as PageKey, label: 'Mesas', icon: Utensils },
   ];
@@ -166,23 +204,70 @@ export function Dashboard({ onNavigateHome, userRole, onChangeRole }: DashboardP
     { key: 'insumos-productos' as PageKey, label: 'Recetas', icon: Link2 },
     { key: 'productos' as PageKey, label: 'Productos', icon: Box },
 
-    { key: 'orden' as PageKey, label: 'Pedido', icon: ShoppingCart },
+
     { key: 'facturas' as PageKey, label: 'Facturas', icon: FileText },
     { key: 'reservacion' as PageKey, label: 'Reservación', icon: Calendar },
     { key: 'mesas' as PageKey, label: 'Mesas', icon: Utensils },
   ];
 
-  // Seleccionar menú según rol
+  // Menú reducido para empleados sin aprobación (solo Inicio y Solicitudes)
+  const employeeUnapprovedMenuItems = [
+    { key: 'dashboard' as PageKey, label: 'Inicio', icon: Home },
+    { key: 'solicitudes' as PageKey, label: 'Mis Solicitudes', icon: CircleDot },
+  ];
+
+  // Seleccionar menú según rol y estado de aprobación
   const menuItems = userRole === 'admin'
     ? adminMenuItems
     : userRole === 'client'
       ? clientMenuItems
-      : employeeMenuItems;
+      : (employeeApproved === true ? employeeMenuItems : employeeUnapprovedMenuItems);
+
+  // Componente de advertencia para empleados no aprobados
+  const EmployeeNotApprovedWarning = () => (
+    <div className="flex items-center justify-center min-h-[60vh]">
+      <div className="max-w-md w-full text-center space-y-6">
+        <div className="mx-auto w-20 h-20 bg-gradient-to-br from-amber-100 to-orange-100 rounded-full flex items-center justify-center shadow-lg">
+          <AlertTriangle className="w-10 h-10 text-amber-500" />
+        </div>
+        <div className="space-y-2">
+          <h3 className="text-xl font-bold text-gray-900">No estás vinculado a un restaurante</h3>
+          <p className="text-gray-500 text-sm leading-relaxed">
+            Tu solicitud de asociación aún no ha sido aprobada por el administrador del restaurante. 
+            Mientras tanto, solo puedes acceder a <strong>Mis Solicitudes</strong> para verificar el estado.
+          </p>
+        </div>
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+          <p className="text-sm text-amber-800 font-medium">¿Qué puedes hacer?</p>
+          <ul className="text-xs text-amber-700 mt-2 space-y-1 text-left list-disc list-inside">
+            <li>Ve a <strong>Mis Solicitudes</strong> para ver el estado de tu solicitud</li>
+            <li>Si no has enviado una solicitud, búscala desde esa sección</li>
+            <li>Espera a que el administrador apruebe tu solicitud</li>
+          </ul>
+        </div>
+        <Button
+          onClick={() => setCurrentPage('solicitudes')}
+          className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 shadow-lg"
+        >
+          <CircleDot className="w-4 h-4 mr-2" />
+          Ir a Mis Solicitudes
+        </Button>
+      </div>
+    </div>
+  );
 
   const renderPage = () => {
+    // Si es empleado no aprobado, solo mostrar solicitudes y dashboard (con warning)
+    if (userRole === 'employee' && employeeApproved !== true) {
+      if (currentPage === 'solicitudes') {
+        return <SolicitudesPage />;
+      }
+      return <EmployeeNotApprovedWarning />;
+    }
+
     switch (currentPage) {
       case 'dashboard':
-        return <DashboardHome />;
+        return <DashboardHome onNavigate={(page) => setCurrentPage(page as PageKey)} />;
 
       case 'usuarios':
         return <UsuarioPage />;
@@ -192,10 +277,8 @@ export function Dashboard({ onNavigateHome, userRole, onChangeRole }: DashboardP
         return <SolicitudesPage />;
       case 'facturas':
         return <FacturasPage />;
-      case 'ingresos-insumos':
-        return <IngresosInsumosPage />;
-      case 'ingresos':
-        return <IngresosPage />;
+
+
       case 'insumos':
         return <InsumosPage />;
       case 'productos':
@@ -205,13 +288,12 @@ export function Dashboard({ onNavigateHome, userRole, onChangeRole }: DashboardP
 
       case 'mesas':
         return <MesasPage />;
-      case 'orden':
-        return <OrdenPage />;
+
 
       case 'reservacion':
         return <ReservacionPage />;
       default:
-        return <DashboardHome />;
+        return <DashboardHome onNavigate={(page) => setCurrentPage(page as PageKey)} />;
     }
   };
 
